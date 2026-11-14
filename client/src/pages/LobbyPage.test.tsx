@@ -6,7 +6,7 @@ import { makeRoom, SELF_ID } from '../dev/fixtures';
 import { renderWithRouter } from '../test/render';
 
 const handlers = {
-  onChooseMode: vi.fn(),
+  onChangeMode: vi.fn(),
   onChangeRounds: vi.fn(),
   onStart: vi.fn(),
   onLeave: vi.fn(),
@@ -42,7 +42,7 @@ describe('LobbyPage', () => {
     const room = makeRoom({ players: 5, selfIsHost: false, selfIsPerformer: false, mode: 'celebrity', phase: 'lobby' });
     renderWithRouter(<LobbyPage room={room} selfId={SELF_ID} {...handlers} />);
     expect(screen.queryByRole('button', { name: /start game/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /choose|change/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: /friends/i })).not.toBeInTheDocument();
     expect(screen.getByText(/Waiting for Priya to start/)).toBeInTheDocument();
   });
 });

@@ -12,7 +12,9 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@fontsource-variable/bricolage-grotesque": "^5.3.0",
+    "@fontsource-variable/nunito": "^5.3.0",
+    "@fontsource/lilita-one": "^5.3.0",
+    "@fontsource/luckiest-guy": "^5.3.0",
     "@ib/shared": "*",
     "lucide-react": "^1.73.0",
     "react": "^19.3.1",

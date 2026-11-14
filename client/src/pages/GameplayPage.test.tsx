@@ -73,7 +73,7 @@ describe('GameplayPage', () => {
   it('shows the locked-in state after a correct guess', () => {
     const room = makeRoom({ players: 5, selfIsHost: false, selfIsPerformer: false, mode: 'celebrity', phase: 'guessing' });
     renderWithRouter(<GameplayPage {...props({ room, myGuess: { attempts: 1, remaining: 5, correct: true, lastGuess: 'x' } })} />);
-    expect(screen.getByText('You got it!')).toBeInTheDocument();
+    expect(screen.getByText('YOU GOT IT!')).toBeInTheDocument();
     expect(screen.queryByLabelText('Your guess')).not.toBeInTheDocument();
   });
 });

@@ -5,21 +5,25 @@ import { cn } from '../utils/cn';
 type Kind = 'info' | 'success' | 'warning' | 'error';
 
 const styles: Record<Kind, { box: string; icon: ReactNode }> = {
-  info: { box: 'border-sky/60 bg-sky/10', icon: <Info className="size-5 shrink-0 text-sky" aria-hidden /> },
-  success: { box: 'border-ok/60 bg-ok/10', icon: <CheckCircle2 className="size-5 shrink-0 text-ok" aria-hidden /> },
-  warning: { box: 'border-warn/60 bg-warn/10', icon: <AlertTriangle className="size-5 shrink-0 text-warn" aria-hidden /> },
-  error: { box: 'border-bad/60 bg-bad/10', icon: <XCircle className="size-5 shrink-0 text-bad" aria-hidden /> },
+  info: { box: 'bg-cyan text-on-bright', icon: <Info className="size-6 shrink-0" strokeWidth={2.75} aria-hidden /> },
+  success: { box: 'bg-lime text-on-bright', icon: <CheckCircle2 className="size-6 shrink-0" strokeWidth={2.75} aria-hidden /> },
+  warning: { box: 'bg-warn text-on-bright', icon: <AlertTriangle className="size-6 shrink-0" strokeWidth={2.75} aria-hidden /> },
+  error: { box: 'bg-bad text-fg', icon: <XCircle className="size-6 shrink-0" strokeWidth={2.75} aria-hidden /> },
 };
 
+/** Loud, game-style message strip. */
 export function Banner({ kind = 'info', children, action }: { kind?: Kind; children: ReactNode; action?: ReactNode }) {
   const s = styles[kind];
   return (
     <div
       role={kind === 'error' ? 'alert' : 'status'}
-      className={cn('flex animate-rise flex-wrap items-start gap-3 rounded-2xl border-2 p-3.5', s.box)}
+      className={cn(
+        'flex animate-pop-in flex-wrap items-center gap-3 rounded-2xl border-[3px] border-ink p-3.5 font-bold shadow-[0_5px_0_var(--color-ink)]',
+        s.box,
+      )}
     >
       {s.icon}
-      <div className="min-w-[min(100%,14rem)] flex-1 text-[15px] leading-relaxed">{children}</div>
+      <div className="min-w-[min(100%,13rem)] flex-1 leading-snug">{children}</div>
       {action}
     </div>
   );

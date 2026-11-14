@@ -8,7 +8,6 @@ import { Link } from 'react-router';
 import { DEFAULT_ROUND_COUNT, MAX_GUESSES_PER_ROUND } from '@ib/shared';
 import type { GameMode, MyGuessState, RoomPhase } from '@ib/shared';
 import { LobbyPage } from '../pages/LobbyPage';
-import { ModeSelectPage } from '../pages/ModeSelectPage';
 import { GameplayPage } from '../pages/GameplayPage';
 import type { GuessFeedback } from '../pages/GameplayPage';
 import { ResultsPage } from '../pages/ResultsPage';
@@ -17,12 +16,11 @@ import type { MicStatus, VoiceStatus } from '../types/voice';
 import { cn } from '../utils/cn';
 import { SELF_ID, galleryAnswer, makeFinal, makePrompt, makeRoom, makeRoundResult } from './fixtures';
 
-type Screen = 'lobby' | 'mode' | 'performing' | 'guessing' | 'results' | 'final';
+type Screen = 'lobby' | 'performing' | 'guessing' | 'results' | 'final';
 type VoiceCase = 'ok' | 'requesting' | 'denied' | 'unavailable' | 'failed' | 'blocked';
 
 const SCREENS: [Screen, string][] = [
   ['lobby', 'Lobby'],
-  ['mode', 'Mode'],
   ['performing', 'Performing'],
   ['guessing', 'Guessing'],
   ['results', 'Results'],
@@ -55,7 +53,7 @@ export default function GalleryPage() {
 
   const inGame = screen === 'performing' || screen === 'guessing';
   const phase: RoomPhase =
-    screen === 'lobby' || screen === 'mode' ? 'lobby' : inGame ? screen : screen === 'results' ? 'round_results' : 'finished';
+    screen === 'lobby' ? 'lobby' : inGame ? screen : screen === 'results' ? 'round_results' : 'finished';
 
   const room = useMemo(
     () =>
@@ -100,25 +98,13 @@ export default function GalleryPage() {
           room={room}
           selfId={SELF_ID}
           justCreated
-          onChooseMode={() => setScreen('mode')}
+          onChangeMode={setLobbyMode}
           onChangeRounds={setRounds}
           onStart={() => {
             if (lobbyMode) setMode(lobbyMode);
             go('performing');
           }}
           onLeave={() => go('lobby')}
-        />
-      );
-      break;
-    case 'mode':
-      page = (
-        <ModeSelectPage
-          selected={lobbyMode}
-          onSelect={(m) => {
-            setLobbyMode(m);
-            setScreen('lobby');
-          }}
-          onBack={() => setScreen('lobby')}
         />
       );
       break;
@@ -183,9 +169,9 @@ export default function GalleryPage() {
     <>
       <nav
         aria-label="Gallery controls"
-        className="sticky top-0 z-50 flex gap-1.5 overflow-x-auto border-b border-line bg-ink-950/95 px-3 py-2 backdrop-blur [scrollbar-width:none]"
+        className="sticky top-0 z-50 flex gap-1.5 overflow-x-auto border-b-[3px] border-ink bg-night-950/95 px-3 py-2 backdrop-blur [scrollbar-width:none]"
       >
-        <Link to="/" className="shrink-0 rounded-full bg-glass-strong px-3 py-1.5 text-xs font-bold">
+        <Link to="/" className="shrink-0 rounded-full bg-night-600 px-3 py-1.5 text-xs font-bold">
           ✕ Exit
         </Link>
         <Sep />
@@ -239,7 +225,7 @@ function Chip({ active, onClick, children }: { active?: boolean; onClick: () => 
       aria-pressed={active}
       className={cn(
         'shrink-0 rounded-full px-3 py-1.5 text-xs font-bold whitespace-nowrap',
-        active ? 'bg-sun text-on-bright' : 'bg-glass hover:bg-glass-strong',
+        active ? 'bg-gold text-on-bright' : 'bg-night-700 hover:bg-night-600',
       )}
     >
       {children}
@@ -248,5 +234,5 @@ function Chip({ active, onClick, children }: { active?: boolean; onClick: () => 
 }
 
 function Sep() {
-  return <span className="mx-1 w-px shrink-0 self-stretch bg-line" aria-hidden />;
+  return <span className="mx-1 w-px shrink-0 self-stretch bg-fg/15" aria-hidden />;
 }

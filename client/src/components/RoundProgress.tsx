@@ -1,9 +1,10 @@
 import { cn } from '../utils/cn';
 
+/** Round pips: done, current (bouncing), upcoming. */
 export function RoundProgress({ current, total }: { current: number; total: number }) {
   return (
     <div
-      className="flex w-full max-w-sm gap-1"
+      className="flex flex-wrap items-center gap-1.5"
       role="progressbar"
       aria-valuemin={1}
       aria-valuemax={total}
@@ -14,10 +15,10 @@ export function RoundProgress({ current, total }: { current: number; total: numb
         <span
           key={i}
           className={cn(
-            'h-2 flex-1 rounded-full transition-all',
-            i + 1 < current && 'bg-teal',
-            i + 1 === current && 'flex-[2] bg-sun',
-            i + 1 > current && 'bg-glass-strong',
+            'rounded-full border-[2.5px] border-ink',
+            i + 1 < current && 'size-3.5 bg-lime',
+            i + 1 === current && 'size-5 animate-bob bg-gold',
+            i + 1 > current && 'size-3.5 bg-night-600',
           )}
         />
       ))}

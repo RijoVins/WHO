@@ -1,15 +1,16 @@
-import type { ActionResult } from '../pages/CreateRoomPage';
+import type { GameMode } from '@ib/shared';
+import type { ActionResult } from '../types/actions';
 
 /**
- * Room actions. Milestone 1 has no game server, so these report that honestly
- * instead of pretending to succeed. Milestone 2 replaces them with real calls.
+ * Room actions. There is no game server yet (next milestone), so these report
+ * that honestly instead of pretending to succeed.
  */
 const NO_SERVER: ActionResult = {
   ok: false,
-  error: "Can't reach the game server. The server is added in the next milestone, so rooms can't be created or joined yet.",
+  error: "Can't reach the game server. Online rooms are switched on in the next milestone.",
 };
 
-export async function createRoom(_name: string): Promise<ActionResult> {
+export async function createRoom(_name: string, _mode: GameMode): Promise<ActionResult> {
   return NO_SERVER;
 }
 

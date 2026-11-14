@@ -1,6 +1,5 @@
-import { Trophy } from 'lucide-react';
 import { rankPlayers } from '@ib/shared';
-import { PlayerAvatar } from './PlayerAvatar';
+import { Character } from './Character';
 import { cn } from '../utils/cn';
 
 interface Entry {
@@ -19,7 +18,7 @@ interface LeaderboardProps {
   limit?: number;
 }
 
-const medal = ['bg-sun text-on-bright', 'bg-[#dcdcec] text-on-bright', 'bg-[#e89b5e] text-on-bright'];
+const medal = ['bg-gold', 'bg-[#dfe3f0]', 'bg-[#f0a46a]'];
 
 export function Leaderboard({ players, selfId, deltas = {}, limit }: LeaderboardProps) {
   const byId = new Map(players.map((p) => [p.id, p]));
@@ -37,49 +36,50 @@ export function Leaderboard({ players, selfId, deltas = {}, limit }: Leaderboard
   const hidden = all.length - rows.length;
 
   return (
-    <ol className="flex flex-col gap-1.5">
+    <ol className="flex flex-col gap-2">
       {rows.map((r, i) => {
         const delta = deltas[r.playerId] ?? 0;
         const mine = r.playerId === selfId;
-        const gap = appendedMe && i === rows.length - 1;
         return (
           <li key={r.playerId} className="contents">
-            {gap ? (
-              <span className="py-0.5 text-center text-xs font-bold text-fg-faint" aria-hidden>
-                ⋯
+            {appendedMe && i === rows.length - 1 ? (
+              <span className="text-center font-display text-fg-faint" aria-hidden>
+                • • •
               </span>
             ) : null}
             <div
               className={cn(
-                'flex animate-rise items-center gap-3 rounded-2xl bg-glass px-3 py-2',
-                mine && 'ring-2 ring-teal',
+                'flex animate-rise items-center gap-3 rounded-2xl border-[3px] border-ink bg-night-600 py-1.5 pr-3 pl-1.5 shadow-[0_4px_0_var(--color-ink)]',
+                mine && 'bg-celeb-deep',
               )}
-              style={{ animationDelay: `${Math.min(i, 12) * 35}ms` }}
+              style={{ animationDelay: `${Math.min(i, 12) * 45}ms` }}
             >
               <span
                 className={cn(
-                  'grid size-8 shrink-0 place-items-center rounded-full font-display text-sm font-extrabold',
-                  r.rank <= 3 ? medal[r.rank - 1] : 'bg-glass-strong',
+                  'grid size-10 shrink-0 place-items-center rounded-xl border-[3px] border-ink font-title text-xl',
+                  r.rank <= 3 ? `${medal[r.rank - 1]} text-on-bright` : 'bg-night-900 text-fg',
                 )}
                 aria-label={`Rank ${r.rank}`}
               >
-                {r.rank === 1 ? <Trophy className="size-4" aria-hidden /> : r.rank}
+                {r.rank}
               </span>
-              <PlayerAvatar id={r.playerId} name={r.name} size="sm" dimmed={byId.get(r.playerId)?.connected === false} />
-              <span className="min-w-0 flex-1 truncate font-bold">
+              <Character id={r.playerId} size={38} dimmed={byId.get(r.playerId)?.connected === false} />
+              <span className="min-w-0 flex-1 truncate font-display text-lg">
                 {r.name}
-                {mine ? <span className="font-normal text-fg-muted"> (you)</span> : null}
+                {mine ? <span className="ml-1 text-sm text-cyan">(you)</span> : null}
               </span>
-              {delta > 0 ? <span className="text-sm font-extrabold text-ok">+{delta}</span> : null}
-              <span className="min-w-14 text-right font-display text-lg font-extrabold tabular-nums text-sun">
-                {r.score}
-              </span>
+              {delta > 0 ? (
+                <span className="animate-pop-in rounded-lg border-2 border-ink bg-lime px-1.5 font-display text-sm text-on-bright">
+                  +{delta}
+                </span>
+              ) : null}
+              <span className="min-w-14 text-right font-title text-2xl text-gold tabular-nums text-outline-thin">{r.score}</span>
             </div>
           </li>
         );
       })}
       {hidden > 0 ? (
-        <li className="pt-1 text-center text-xs font-bold text-fg-faint">
+        <li className="pt-1 text-center font-display text-fg-faint">
           + {hidden} more player{hidden === 1 ? '' : 's'}
         </li>
       ) : null}

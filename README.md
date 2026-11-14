@@ -11,7 +11,7 @@ Rooms hold 3–60 players, on phones, tablets or computers. Nobody installs an a
 
 | Milestone | Scope | State |
 |---|---|---|
-| 1 | React + Vite web frontend and responsive design | ✅ Done |
+| 1 | React + Vite web frontend, game-style design | ✅ Done |
 | 2 | Room creation and joining (Express + Socket.IO server, PostgreSQL/Prisma) | Next |
 | 3 | Socket.IO multiplayer lobby | |
 | 4 | Celebrity Mode and Friends Mode | |
@@ -21,14 +21,25 @@ Rooms hold 3–60 players, on phones, tablets or computers. Nobody installs an a
 | 8 | Testing with 3, 10, 30 and 60 players | |
 | 9 | Public deployment | |
 
-There is no game server yet, so **Create Room** and **Join Room** check what you type and then show a clear "can't reach the game server" message. They do not pretend to work. To review the in-room pages now, use the development **screen gallery** described below.
+There is no game server yet, so **Create Room** and **Join Room** check what you type and then show a clear "can't reach the game server" message. They do not pretend to work. To review the in-room screens now, use the development **screen gallery** described below.
+
+## Design
+
+The site is styled as a party video game, not a website:
+
+- **Main menu.** It shows exactly four options: **Celebrity Mode**, **Friends Mode**, **Create Room** and **Join Room**. The mode you pick is remembered on this device and used when you create a room.
+- **Look.** A dark arcade stage with a slowly turning sunburst, halftone dots and floating doodles. Buttons are chunky 3D push-buttons with ink outlines. Text uses cartoon display fonts (Luckiest Guy and Lilita One, self-hosted).
+- **Mode colors.** Celebrity Mode is purple and gold, with a superstar in shades under spotlights. Friends Mode is orange and pink, with one buddy doing a bad impression of another.
+- **Avatars.** Every player gets a cartoon character generated from their id: color, eyes, mouth and an accessory such as a party hat, shades or a mustache. The same player always looks the same.
+- **Animation.** Screens zoom in. Players pop into the lobby one by one. The countdown number punches in every second and shakes in the last five. A live mic shows equalizer bars. The answer slams in like a stamp over spinning rays. The winner gets a podium and confetti.
+- **Reduced motion.** If the device asks for reduced motion, animations are turned off.
 
 ## Tech stack
 
 | Part | Technology | Licence |
 |---|---|---|
 | Frontend | React 19, Vite 8, TypeScript, Tailwind CSS 4, React Router 8, lucide icons | MIT / ISC |
-| Display font | Bricolage Grotesque, self-hosted via Fontsource (no requests to Google at runtime) | OFL |
+| Fonts | Luckiest Guy, Lilita One, Nunito, self-hosted via Fontsource (no requests to Google at runtime) | OFL |
 | Tests | Vitest, Testing Library, jsdom | MIT |
 | Backend (Milestone 2+) | Node.js, Express, Socket.IO, Prisma, PostgreSQL | MIT / Apache-2.0 / PostgreSQL |
 | Voice (Milestone 6) | LiveKit SFU (self-hosted) and the LiveKit browser SDK, audio only | Apache-2.0 |
@@ -47,11 +58,13 @@ WHO/
 │       └── events.ts     Socket.IO event names
 └── client/               @ib/client, the website
     └── src/
-        ├── pages/        Home, Create, Join, Lobby, Mode Selection, Gameplay, Results, Final, 404
-        ├── components/   PageShell, Button, TextField, PlayerGrid, CountdownTimer, Leaderboard, ...
+        ├── pages/        Home (main menu), Create, Join, Lobby, Gameplay, Results, Final, 404
+        ├── components/   GameTitle, GameButton, ModeTile, ModeArt, Character, Panel, PlayerGrid,
+        │                 CountdownTimer, MicMeter, Leaderboard, Confetti, ArcadeBackground, ...
+        ├── context/      the mode picked on the main menu (remembered on this device)
         ├── hooks/        useCountdown (server-time display), useCopy (clipboard)
         ├── services/     rooms.ts: room actions (they report "no server" until Milestone 2)
-        ├── types/        voice and mic status
+        ├── types/        voice/mic status, action results
         ├── utils/        helpers (start rules, round deltas, invite links, ...)
         ├── styles/       Tailwind theme, animations, base styles
         ├── dev/          development-only screen gallery and sample data
@@ -97,19 +110,20 @@ npm run build        # production build in client/dist
 ## Review the pages
 
 1. Run `npm run dev` and open http://localhost:5173.
-2. **Create Room / Join Room**: submit with empty or invalid input to see validation messages. For example, the code `ABC` is too short and `ABCD0` contains a character room codes never use. Open http://localhost:5173/join?code=k7qx4 to see an invite link fill in the code.
-3. **Screen gallery**: use the link at the bottom of the home page, or go to http://localhost:5173/dev/gallery. It is only included in development builds. The toolbar switches:
-   - the page: Lobby, Mode, Performing, Guessing, Results, Final
+2. **Main menu**: pick Celebrity or Friends, then Create Room. The Create screen already has that mode selected. Submitting without a mode, a name or a valid code shows game-style error messages.
+3. **Create Room / Join Room**: submit with empty or invalid input to see validation messages. For example, the code `ABC` is too short and `ABCD0` contains a character room codes never use. Open http://localhost:5173/join?code=k7qx4 to see an invite link fill in the code.
+4. **Screen gallery**: use the small link under the menu, or go to http://localhost:5173/dev/gallery. It is only included in development builds. The toolbar switches:
+   - the screen: Lobby, Performing, Guessing, Results, Final
    - room size: 3, 10, 30 or 60 players
    - your role: Host or Guest, or in gameplay, Performer or Guesser
    - the mode: Celebrity or Friends
    - the voice state: OK, mic permission pending, mic blocked, no mic, voice failed, or audio paused by the browser
    - the outcome: "everyone guessed" on Results, a tie on Final
-4. Things to try:
-   - As host in the Lobby, choose a mode, change the rounds, then press **Start Game**.
+5. Things to try:
+   - As host in the Lobby, pick a mode, change the rounds, then press **Start Game**.
    - As a guesser, try some answers. The gallery's answer is `Morgan Freeman` in Celebrity Mode and `Mei` in Friends Mode, and wrong guesses use up tries.
    - In Friends Mode with 60 players, type part of a name to filter the name suggestions.
-5. **Responsive check**: use your browser's device toolbar (Ctrl+Shift+M in Chrome or Firefox). On phones, pages stack in a single column. At 1024px and wider, the Lobby, Gameplay and Results pages switch to two columns.
+6. **Responsive check**: use your browser's device toolbar (Ctrl+Shift+M in Chrome or Firefox). On phones, pages stack in a single column. At 1024px and wider, the Lobby, Gameplay and Results pages switch to two columns.
 
 ## Free vs. paid
 

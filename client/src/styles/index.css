@@ -1,84 +1,197 @@
 @import 'tailwindcss';
-@import '@fontsource-variable/bricolage-grotesque';
+@import '@fontsource/luckiest-guy';
+@import '@fontsource/lilita-one';
+@import '@fontsource-variable/nunito';
 
-/* ---------- Design tokens ---------- */
+/* ================= Tokens ================= */
 @theme {
-  --font-display: 'Bricolage Grotesque Variable', ui-sans-serif, system-ui, sans-serif;
-  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-title: 'Luckiest Guy', 'Lilita One', system-ui, sans-serif;
+  --font-display: 'Lilita One', system-ui, sans-serif;
+  --font-sans: 'Nunito Variable', ui-rounded, system-ui, sans-serif;
 
-  --color-ink-950: #0b0518;
-  --color-ink-900: #120828;
-  --color-ink-800: #1d0f3f;
-  --color-ink-700: #2a1758;
-  --color-ink-600: #3b2275;
+  /* Stage */
+  --color-ink: #0a0316; /* cartoon outlines + hard shadows */
+  --color-night-950: #10051f;
+  --color-night-900: #170829;
+  --color-night-800: #22103d;
+  --color-night-700: #2e1652;
+  --color-night-600: #3e2170;
 
   --color-fg: #ffffff;
-  --color-fg-muted: #cbc0ec;
-  --color-fg-faint: #8f82bb;
-  --color-line: rgb(255 255 255 / 0.12);
-  --color-glass: rgb(255 255 255 / 0.06);
-  --color-glass-strong: rgb(255 255 255 / 0.11);
+  --color-fg-muted: #d3c6f5;
+  --color-fg-faint: #9a8bc8;
 
-  --color-pink: #ff4d8d;
-  --color-pink-deep: #e0326f;
-  --color-violet: #8b5cf6;
-  --color-teal: #2ec4b6;
-  --color-sky: #4cc9f0;
-  --color-sun: #ffd23f;
-  --color-ok: #3ddc97;
+  /* Celebrity Mode: purple + gold */
+  --color-celeb: #8b3dff;
+  --color-celeb-deep: #5a1ccc;
+  --color-gold: #ffc83d;
+  --color-gold-deep: #d99400;
+
+  /* Friends Mode: orange + pink */
+  --color-friend: #ff7a1a;
+  --color-friend-deep: #d14d00;
+  --color-pink: #ff3d8b;
+  --color-pink-deep: #c41862;
+
+  /* Actions */
+  --color-lime: #9bea2e;
+  --color-lime-deep: #5c9f0a;
+  --color-cyan: #2ee6ff;
+  --color-cyan-deep: #0598b8;
+
+  --color-ok: #46e08a;
   --color-warn: #ffb020;
-  --color-bad: #ff5a5f;
-  --color-on-bright: #160a33;
+  --color-bad: #ff4d5e;
+  --color-on-bright: #1a0833;
 
-  --animate-pop-in: pop-in 320ms cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
+  --animate-screen-in: screen-in 380ms cubic-bezier(0.2, 0.9, 0.25, 1.15) both;
+  --animate-pop-in: pop-in 420ms cubic-bezier(0.2, 0.9, 0.3, 1.5) both;
   --animate-rise: rise 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-  --animate-float: float 5s ease-in-out infinite;
-  --animate-live-ring: live-ring 1.6s ease-out infinite;
+  --animate-bob: bob 3.2s ease-in-out infinite;
+  --animate-wiggle: wiggle 2.8s ease-in-out infinite;
+  --animate-spin-slow: spin 60s linear infinite;
+  --animate-drift: drift 14s ease-in-out infinite;
+  --animate-stamp: stamp 520ms cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+  --animate-count: count 1s ease-out;
   --animate-shake: shake 360ms ease-in-out;
+  --animate-eq: eq 0.9s ease-in-out infinite;
+  --animate-pulse-ring: pulse-ring 1.4s ease-out infinite;
+  --animate-shine: shine 3.5s ease-in-out infinite;
+  --animate-confetti: confetti 3.2s linear infinite;
+  --animate-blink: blink 4s infinite;
 
+  @keyframes screen-in {
+    from { opacity: 0; transform: scale(0.94) translateY(18px); }
+    to { opacity: 1; transform: none; }
+  }
   @keyframes pop-in {
-    from { opacity: 0; transform: scale(0.85); }
-    to { opacity: 1; transform: scale(1); }
+    0% { opacity: 0; transform: scale(0.4) rotate(-6deg); }
+    100% { opacity: 1; transform: none; }
   }
   @keyframes rise {
-    from { opacity: 0; transform: translateY(14px); }
-    to { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: none; }
   }
-  @keyframes float {
-    0%, 100% { transform: translateY(0) rotate(-2deg); }
-    50% { transform: translateY(-8px) rotate(2deg); }
+  @keyframes bob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-7px); }
   }
-  @keyframes live-ring {
-    from { box-shadow: 0 0 0 0 rgb(255 77 141 / 0.6); }
-    to { box-shadow: 0 0 0 16px rgb(255 77 141 / 0); }
+  @keyframes wiggle {
+    0%, 86%, 100% { transform: rotate(0); }
+    89% { transform: rotate(-4deg); }
+    93% { transform: rotate(4deg); }
+    96% { transform: rotate(-2deg); }
+  }
+  @keyframes drift {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    50% { transform: translate(14px, -22px) rotate(12deg); }
+  }
+  @keyframes stamp {
+    0% { opacity: 0; transform: scale(2.4) rotate(-8deg); }
+    70% { opacity: 1; transform: scale(0.94) rotate(1deg); }
+    100% { transform: none; }
+  }
+  @keyframes count {
+    0% { transform: scale(1.45); }
+    100% { transform: scale(1); }
   }
   @keyframes shake {
     0%, 100% { transform: translateX(0); }
     25% { transform: translateX(-6px); }
     75% { transform: translateX(6px); }
   }
+  @keyframes eq {
+    0%, 100% { transform: scaleY(0.3); }
+    50% { transform: scaleY(1); }
+  }
+  @keyframes pulse-ring {
+    from { box-shadow: 0 0 0 0 var(--ring-color, rgb(255 61 139 / 0.7)); }
+    to { box-shadow: 0 0 0 18px rgb(0 0 0 / 0); }
+  }
+  @keyframes shine {
+    0%, 60% { transform: translateX(-120%) skewX(-20deg); }
+    100% { transform: translateX(260%) skewX(-20deg); }
+  }
+  @keyframes confetti {
+    0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(720deg); opacity: 1; }
+  }
+  @keyframes blink {
+    0%, 92%, 100% { transform: scaleY(1); }
+    95% { transform: scaleY(0.1); }
+  }
 }
 
-/* ---------- Base ---------- */
+/* ================= Reusable game pieces ================= */
+
+/* Chunky 3D push button. Colors come from --face / --lip / --label. */
+@utility btn-3d {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  overflow: hidden;
+  border: 3px solid var(--color-ink);
+  border-radius: 1.25rem;
+  background: var(--face);
+  color: var(--label, var(--color-on-bright));
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow:
+    inset 0 -6px 0 var(--lip),
+    inset 0 3px 0 rgb(255 255 255 / 0.35),
+    0 6px 0 var(--color-ink);
+  transition: transform 90ms ease, box-shadow 90ms ease, filter 150ms ease;
+  user-select: none;
+  -webkit-user-select: none;
+  &:hover { filter: brightness(1.08); transform: translateY(-2px); box-shadow: inset 0 -6px 0 var(--lip), inset 0 3px 0 rgb(255 255 255 / 0.35), 0 8px 0 var(--color-ink); }
+  &:active { transform: translateY(5px); box-shadow: inset 0 -3px 0 var(--lip), inset 0 2px 0 rgb(255 255 255 / 0.3), 0 1px 0 var(--color-ink); }
+  &:disabled { filter: grayscale(0.7) brightness(0.7); transform: none; cursor: not-allowed; }
+}
+
+/* Dark game panel with ink outline and hard drop shadow. */
+@utility panel {
+  position: relative;
+  border: 3px solid var(--color-ink);
+  border-radius: 1.75rem;
+  background:
+    radial-gradient(circle at 1px 1px, rgb(255 255 255 / 0.05) 1px, transparent 0) 0 0 / 14px 14px,
+    linear-gradient(180deg, var(--color-night-700), var(--color-night-800));
+  box-shadow: inset 0 2px 0 rgb(255 255 255 / 0.08), 0 8px 0 var(--color-ink);
+}
+
+/* Cartoon outlined text. */
+@utility text-outline {
+  -webkit-text-stroke: 0.12em var(--color-ink);
+  paint-order: stroke fill;
+}
+@utility text-outline-thin {
+  -webkit-text-stroke: 0.07em var(--color-ink);
+  paint-order: stroke fill;
+}
+
+/* ================= Base ================= */
 @layer base {
   html {
     color-scheme: dark;
+    /* Decorative rays/glows are wider than the screen; clip them without making a scroll container. */
+    overflow-x: clip;
     -webkit-text-size-adjust: 100%;
     -webkit-tap-highlight-color: transparent;
   }
   body {
-    @apply bg-ink-900 font-sans text-fg antialiased;
+    @apply bg-night-900 font-sans text-fg antialiased;
     min-height: 100dvh;
-    background-image:
-      radial-gradient(60rem 40rem at 10% -10%, rgb(255 77 141 / 0.22), transparent 60%),
-      radial-gradient(50rem 40rem at 110% 10%, rgb(139 92 246 / 0.28), transparent 60%),
-      radial-gradient(50rem 30rem at 50% 120%, rgb(46 196 182 / 0.16), transparent 60%);
-    background-attachment: fixed;
+    overflow-x: clip;
   }
   /* 16px+ inputs stop iOS Safari from zooming on focus. */
   input, textarea, select { font-size: max(16px, 1em); }
-  :focus-visible { outline: 3px solid var(--color-sun); outline-offset: 2px; }
-  ::selection { background: rgb(255 210 63 / 0.4); }
+  :focus-visible { outline: 4px solid var(--color-cyan); outline-offset: 3px; }
+  ::selection { background: rgb(255 200 61 / 0.45); }
+  /* Luckiest Guy only has proper capitals; mixed case looks broken. */
+  .font-title { text-transform: uppercase; }
 }
 
 @media (prefers-reduced-motion: reduce) {
