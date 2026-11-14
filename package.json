@@ -1,0 +1,21 @@
+{
+  "name": "impersonation-battle",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Voice-only multiplayer impersonation party game for the browser.",
+  "type": "module",
+  "workspaces": [
+    "shared",
+    "client"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace client",
+    "build": "npm run build --workspace client",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=20.19"
+  }
+}

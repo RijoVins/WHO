@@ -1,0 +1,90 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/bricolage-grotesque';
+
+/* ---------- Design tokens ---------- */
+@theme {
+  --font-display: 'Bricolage Grotesque Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --color-ink-950: #0b0518;
+  --color-ink-900: #120828;
+  --color-ink-800: #1d0f3f;
+  --color-ink-700: #2a1758;
+  --color-ink-600: #3b2275;
+
+  --color-fg: #ffffff;
+  --color-fg-muted: #cbc0ec;
+  --color-fg-faint: #8f82bb;
+  --color-line: rgb(255 255 255 / 0.12);
+  --color-glass: rgb(255 255 255 / 0.06);
+  --color-glass-strong: rgb(255 255 255 / 0.11);
+
+  --color-pink: #ff4d8d;
+  --color-pink-deep: #e0326f;
+  --color-violet: #8b5cf6;
+  --color-teal: #2ec4b6;
+  --color-sky: #4cc9f0;
+  --color-sun: #ffd23f;
+  --color-ok: #3ddc97;
+  --color-warn: #ffb020;
+  --color-bad: #ff5a5f;
+  --color-on-bright: #160a33;
+
+  --animate-pop-in: pop-in 320ms cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
+  --animate-rise: rise 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-float: float 5s ease-in-out infinite;
+  --animate-live-ring: live-ring 1.6s ease-out infinite;
+  --animate-shake: shake 360ms ease-in-out;
+
+  @keyframes pop-in {
+    from { opacity: 0; transform: scale(0.85); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0) rotate(-2deg); }
+    50% { transform: translateY(-8px) rotate(2deg); }
+  }
+  @keyframes live-ring {
+    from { box-shadow: 0 0 0 0 rgb(255 77 141 / 0.6); }
+    to { box-shadow: 0 0 0 16px rgb(255 77 141 / 0); }
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+}
+
+/* ---------- Base ---------- */
+@layer base {
+  html {
+    color-scheme: dark;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-ink-900 font-sans text-fg antialiased;
+    min-height: 100dvh;
+    background-image:
+      radial-gradient(60rem 40rem at 10% -10%, rgb(255 77 141 / 0.22), transparent 60%),
+      radial-gradient(50rem 40rem at 110% 10%, rgb(139 92 246 / 0.28), transparent 60%),
+      radial-gradient(50rem 30rem at 50% 120%, rgb(46 196 182 / 0.16), transparent 60%);
+    background-attachment: fixed;
+  }
+  /* 16px+ inputs stop iOS Safari from zooming on focus. */
+  input, textarea, select { font-size: max(16px, 1em); }
+  :focus-visible { outline: 3px solid var(--color-sun); outline-offset: 2px; }
+  ::selection { background: rgb(255 210 63 / 0.4); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
