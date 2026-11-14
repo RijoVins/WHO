@@ -27,6 +27,11 @@ export function registerHandlers(io: GameServer, store: RoomStore, opts: { trust
     if (room) io.to(code).emit('room_updated', store.toPublic(room));
   };
   store.on('changed', broadcast);
+  // Secret prompts go to one socket only — never to the room channel.
+  store.on('prompt', (code, playerId, prompt) => {
+    const player = store.get(code)?.players.get(playerId);
+    if (player?.socketId) io.to(player.socketId).emit('private_prompt', prompt);
+  });
   store.on('removed', (code, player) => {
     // If the removed player somehow still has a socket, tell it.
     if (player.socketId) io.to(player.socketId).emit('session_ended', { reason: 'removed' });
@@ -61,6 +66,8 @@ export function registerHandlers(io: GameServer, store: RoomStore, opts: { trust
       token: player.token,
       room: store.toPublic(room),
       serverNow: Date.now(),
+      prompt: store.promptFor(room, player.id),
+      myGuess: store.guessStateFor(room, player.id),
     });
 
     /** Put this socket into a seat, leaving any seat it held before (no duplicate entries). */
@@ -153,13 +160,25 @@ export function registerHandlers(io: GameServer, store: RoomStore, opts: { trust
       return r.ok ? { ok: true } : r;
     });
 
-    on('start_game', () => {
+    /** Host/game actions that take no payload and return a plain ok. */
+    const simple = (event: 'start_game' | 'next_round' | 'play_again' | 'return_to_lobby', fn: (code: string, playerId: string) => { ok: boolean }) =>
+      on(event, () => {
+        const me = mine();
+        if (!me) return err('NOT_IN_ROOM', "You're not in a room.");
+        const r = fn(me.code, me.playerId) as Ack<object>;
+        return r.ok ? { ok: true } : r;
+      });
+    simple('start_game', (c, p) => store.startGame(c, p));
+    simple('next_round', (c, p) => store.nextRound(c, p));
+    simple('play_again', (c, p) => store.playAgain(c, p));
+    simple('return_to_lobby', (c, p) => store.returnToLobby(c, p));
+
+    on('submit_guess', (payload) => {
       const me = mine();
       if (!me) return err('NOT_IN_ROOM', "You're not in a room.");
-      const r = store.canStart(me.code, me.playerId);
-      if (!r.ok) return r;
-      // Every start rule has passed. Rounds, prompts and scoring are the next milestone.
-      return err('NOT_IMPLEMENTED', 'Lobby is ready! Gameplay rounds are switched on in the next update.');
+      const guess = typeof payload === 'object' && payload !== null ? (payload as { guess?: unknown }).guess : undefined;
+      const r = store.submitGuess(me.code, me.playerId, guess);
+      return r.ok ? { ok: true, ...r.value } : r;
     });
 
     socket.on('disconnect', () => {

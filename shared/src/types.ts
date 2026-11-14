@@ -1,5 +1,7 @@
 export type GameMode = 'celebrity' | 'friends';
 
+export type CelebrityCategory = 'Hero' | 'Heroine';
+
 /**
  * Where a room is in the game. Only the server changes this.
  * - performing: performer's mic is live; guesses are open.
@@ -26,6 +28,8 @@ export interface RoundPublic {
   number: number;
   totalRounds: number;
   performerId: string;
+  /** Kept even if the performer leaves mid-round. */
+  performerName: string;
   /** Server epoch ms. Clients display these; the server decides when stages end. */
   performEndsAt: number;
   guessEndsAt: number;
@@ -39,10 +43,17 @@ export interface RoundPublic {
 export interface PrivatePrompt {
   roundNumber: number;
   mode: GameMode;
-  /** Celebrity name, or the display name of the player to imitate. */
+  /** Celebrity display name, or the display name of the player to imitate. */
   target: string;
+  /** Celebrity Mode: "Hero" / "Heroine". */
   category?: string;
   hint?: string;
+  /** Celebrity Mode: photo URL. */
+  image?: string | null;
+  /** Celebrity Mode: photo credit line (author, license). */
+  imageCredit?: string;
+  /** Friends Mode: the player to imitate (their avatar is their profile picture). */
+  targetPlayerId?: string;
 }
 
 /** What one player knows about their own guesses this round. */
@@ -55,6 +66,7 @@ export interface MyGuessState {
 
 export interface RoundAward {
   playerId: string;
+  name: string;
   points: number;
   firstCorrect: boolean;
 }
@@ -64,8 +76,16 @@ export interface RoundResult {
   totalRounds: number;
   mode: GameMode;
   performerId: string;
+  performerName: string;
   answer: string;
   category?: string;
+  /** Celebrity Mode: revealed photo. */
+  answerImage?: string | null;
+  answerImageCredit?: string;
+  /** Friends Mode: the imitated player. */
+  answerPlayerId?: string;
+  /** Round ended before time because the performer left. */
+  performerLeft?: boolean;
   /** Correct guessers in the order they got it. */
   awards: RoundAward[];
   performerPoints: number;
@@ -96,6 +116,8 @@ export interface RoomState {
   round: RoundPublic | null;
   lastResult: RoundResult | null;
   finalResult: FinalResult | null;
+  /** Server clock when this snapshot was sent, for countdown sync. */
+  serverNow: number;
 }
 
 export interface ScoringConfig {

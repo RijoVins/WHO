@@ -6,6 +6,7 @@ import { GameButton, IconButton } from '../components/GameButton';
 import { Leaderboard } from '../components/Leaderboard';
 import { Character } from '../components/Character';
 import { Rays } from '../components/Rays';
+import { CelebrityPhoto } from '../components/CelebrityPhoto';
 import { useCountdown } from '../hooks/useCountdown';
 import { playerName } from '../utils/players';
 import { roundDeltas } from '../utils/room';
@@ -23,7 +24,7 @@ interface ResultsPageProps {
 export function ResultsPage({ room, selfId, result, serverOffsetMs, onNext, onLeave }: ResultsPageProps) {
   const isHost = room.hostId === selfId;
   const isLast = result.roundNumber >= result.totalRounds;
-  const performer = playerName(room.players, result.performerId);
+  const performer = result.performerName || playerName(room.players, result.performerId);
   const deltas = roundDeltas(result);
   const mine = deltas[selfId] ?? 0;
   const secondsLeft = useCountdown(result.nextAt, serverOffsetMs);
@@ -36,20 +37,32 @@ export function ResultsPage({ room, selfId, result, serverOffsetMs, onNext, onLe
         <p className="animate-rise font-display text-xl tracking-[0.2em] text-fg-muted uppercase">
           Round {result.roundNumber} · The answer was…
         </p>
+        {result.answerImage !== undefined ? (
+          <div className="w-40 animate-stamp [animation-delay:150ms] sm:w-48">
+            <CelebrityPhoto src={result.answerImage} name={result.answer} credit={result.answerImageCredit} eager />
+          </div>
+        ) : result.answerPlayerId ? (
+          <div className="grid size-36 animate-stamp place-items-center rounded-full border-[3px] border-ink bg-[linear-gradient(160deg,var(--color-friend),var(--color-pink))] shadow-[0_6px_0_var(--color-ink)] [animation-delay:150ms]">
+            <Character id={result.answerPlayerId} size={112} />
+          </div>
+        ) : null}
         <h1
-          className="animate-stamp rounded-[1.75rem] border-[3px] border-ink bg-gold px-6 py-3 font-title text-[clamp(2.4rem,10vw,5rem)] leading-none break-words text-on-bright shadow-[inset_0_-7px_0_var(--color-gold-deep),0_9px_0_var(--color-ink)] [animation-delay:250ms]"
+          className="animate-stamp rounded-[1.75rem] border-[3px] border-ink bg-gold px-6 py-3 font-title text-[clamp(2.4rem,10vw,5rem)] leading-none break-words text-on-bright shadow-[inset_0_-7px_0_var(--color-gold-deep),0_9px_0_var(--color-ink)] [animation-delay:350ms]"
         >
           {result.answer}
         </h1>
         {result.category ? (
           <span className="animate-rise rounded-lg border-[2.5px] border-ink bg-celeb px-3 font-display uppercase [animation-delay:500ms]">
-            {result.category}
+            Tamil cinema {result.category}
           </span>
         ) : null}
         <p className="flex animate-rise items-center gap-2 font-display text-xl uppercase [animation-delay:600ms]">
           <Character id={result.performerId} size={40} />
           performed by {result.performerId === selfId ? 'you' : performer}
         </p>
+        {result.performerLeft ? (
+          <p className="font-bold text-warn">The performer dropped out, so the round skipped to final guesses.</p>
+        ) : null}
         {mine > 0 ? (
           <p className="animate-pop-in rounded-2xl border-[3px] border-ink bg-lime px-5 py-2 font-title text-3xl text-on-bright shadow-[0_5px_0_var(--color-ink)] [animation-delay:800ms]">
             +{mine} FOR YOU!
@@ -64,7 +77,7 @@ export function ResultsPage({ room, selfId, result, serverOffsetMs, onNext, onLe
           ) : (
             <ol className="flex flex-col gap-2">
               {result.awards.map((a, i) => {
-                const name = playerName(room.players, a.playerId);
+                const name = a.name;
                 return (
                   <li
                     key={a.playerId}

@@ -11,6 +11,10 @@ export const ClientEvents = {
   StartGame: 'start_game',
   SubmitGuess: 'submit_guess',
   NextRound: 'next_round',
+  PlayAgain: 'play_again',
+  ReturnToLobby: 'return_to_lobby',
+  ResumeSession: 'resume_session',
+  UpdateSettings: 'update_settings',
 } as const;
 
 export const ServerEvents = {

@@ -29,16 +29,18 @@ describe('GameplayPage', () => {
   it('shows the secret prompt to the performer', () => {
     const room = makeRoom({ players: 5, selfIsHost: true, selfIsPerformer: true, mode: 'celebrity', phase: 'performing' });
     renderWithRouter(<GameplayPage {...props({ room, prompt: makePrompt('celebrity', room), myGuess: null, micStatus: 'live' })} />);
-    expect(screen.getByText('Morgan Freeman')).toBeInTheDocument();
+    expect(screen.getByText('Thalapathy Vijay')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Photo of Thalapathy Vijay' })).toHaveAttribute('src', '/images/celebrities/vijay.jpg');
     expect(screen.queryByLabelText('Your guess')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /mute mic/i })).toBeInTheDocument();
   });
 
-  it('shows guessers the guess form and no prompt', async () => {
+  it('shows guessers the guess form and no prompt or photo', async () => {
     const room = makeRoom({ players: 5, selfIsHost: false, selfIsPerformer: false, mode: 'celebrity', phase: 'performing' });
     const onSubmitGuess = vi.fn();
     renderWithRouter(<GameplayPage {...props({ room, onSubmitGuess })} />);
-    expect(screen.queryByText(/only you can see this/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/top secret/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: /photo of/i })).not.toBeInTheDocument();
     await userEvent.type(screen.getByLabelText('Your guess'), '  tom   hanks ');
     await userEvent.click(screen.getByRole('button', { name: /submit guess/i }));
     expect(onSubmitGuess).toHaveBeenCalledWith('tom hanks');

@@ -136,8 +136,10 @@ describe('room lobby over Socket.IO', () => {
     // Two players is not enough.
     expect(await emit(host.c, 'start_game')).toMatchObject({ ok: false, code: 'NOT_ENOUGH_PLAYERS' });
     await joiner(host.g.room.code, 'Cal');
-    // All checks pass; rounds are not built yet and the server says so.
-    expect(await emit(host.c, 'start_game')).toMatchObject({ ok: false, code: 'NOT_IMPLEMENTED' });
+    // All checks pass: the game starts and nobody can join any more.
+    expect(await emit(host.c, 'start_game')).toEqual({ ok: true });
+    expect(server.store.get(host.g.room.code)!.phase).toBe('performing');
+    expect(await emit(await client(), 'join_room', { name: 'Late', code: host.g.room.code })).toMatchObject({ ok: false, code: 'GAME_IN_PROGRESS' });
   });
 
   it('keeps rooms isolated', async () => {

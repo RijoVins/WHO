@@ -10,16 +10,17 @@ import { registerHandlers } from './sockets/registerHandlers.ts';
 import type { GameServer } from './sockets/registerHandlers.ts';
 import { healthRouter } from './routes/health.ts';
 import type { ServerConfig } from './config.ts';
+import type { Timings } from './game/GameEngine.ts';
 
 const CLIENT_DIST = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../client/dist');
 
 /** Build the HTTP + Socket.IO server. Used by index.ts and by the tests. */
-export function createGameServer(config: ServerConfig) {
+export function createGameServer(config: ServerConfig, opts: { timings?: Partial<Timings> } = {}) {
   const app = express();
   app.disable('x-powered-by');
   if (config.trustProxy) app.set('trust proxy', true);
 
-  const store = new RoomStore({ maxRooms: config.maxRooms, graceMs: config.graceMs });
+  const store = new RoomStore({ maxRooms: config.maxRooms, graceMs: config.graceMs, timings: opts.timings });
   app.use('/api', healthRouter(store));
 
   // Production: serve the built website from the same origin as the socket server.

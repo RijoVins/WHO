@@ -57,6 +57,7 @@ export function makeRoom(opts: {
             number: 2,
             totalRounds,
             performerId,
+            performerName: players.find((p) => p.id === performerId)!.name,
             performEndsAt,
             guessEndsAt: performEndsAt + GUESS_SECONDS * 1000,
             correctPlayerIds: guesserIds.filter((id) => id !== SELF_ID).slice(0, Math.floor(guesserIds.length / 3)),
@@ -65,17 +66,32 @@ export function makeRoom(opts: {
         : null,
     lastResult: null,
     finalResult: null,
+    serverNow: Date.now(),
   };
 }
 
 export function galleryAnswer(mode: GameMode, room: RoomState): string {
-  return mode === 'celebrity' ? 'Morgan Freeman' : room.players[FRIEND_TARGET_INDEX]?.name ?? 'Mei';
+  return mode === 'celebrity' ? 'Vijay' : room.players[FRIEND_TARGET_INDEX]?.name ?? 'Mei';
 }
 
 export function makePrompt(mode: GameMode, room: RoomState): PrivatePrompt {
   return mode === 'celebrity'
-    ? { roundNumber: 2, mode, target: 'Morgan Freeman', category: 'Movies', hint: 'Slow, warm, wise narrator voice.' }
-    : { roundNumber: 2, mode, target: galleryAnswer(mode, room), hint: 'Their favourite phrases, how they laugh.' };
+    ? {
+        roundNumber: 2,
+        mode,
+        target: 'Thalapathy Vijay',
+        category: 'Hero',
+        hint: 'Also known as Vijay.',
+        image: '/images/celebrities/vijay.jpg',
+        imageCredit: "Prime Minister's Office · GODL-India",
+      }
+    : {
+        roundNumber: 2,
+        mode,
+        target: galleryAnswer(mode, room),
+        targetPlayerId: room.players[FRIEND_TARGET_INDEX]?.id,
+        hint: 'Copy how they talk: favourite phrases, laugh, accent.',
+      };
 }
 
 export function makeRoundResult(room: RoomState, mode: GameMode, everyone: boolean): RoundResult {
@@ -86,9 +102,13 @@ export function makeRoundResult(room: RoomState, mode: GameMode, everyone: boole
     totalRounds: room.settings.totalRounds,
     mode,
     performerId: PERFORMER_ID,
-    answer: galleryAnswer(mode, room),
-    category: mode === 'celebrity' ? 'Movies' : undefined,
-    awards: correct.map((p, i) => ({ playerId: p.id, points: i === 0 ? 150 : 100, firstCorrect: i === 0 })),
+    performerName: room.players.find((p) => p.id === PERFORMER_ID)?.name ?? 'Diego',
+    answer: mode === 'celebrity' ? 'Thalapathy Vijay' : galleryAnswer(mode, room),
+    category: mode === 'celebrity' ? 'Hero' : undefined,
+    answerImage: mode === 'celebrity' ? '/images/celebrities/vijay.jpg' : undefined,
+    answerImageCredit: mode === 'celebrity' ? "Prime Minister's Office · GODL-India" : undefined,
+    answerPlayerId: mode === 'friends' ? room.players[FRIEND_TARGET_INDEX]?.id : undefined,
+    awards: correct.map((p, i) => ({ playerId: p.id, name: p.name, points: i === 0 ? 150 : 100, firstCorrect: i === 0 })),
     performerPoints: everyone ? 100 : 0,
     everyoneGuessed: everyone,
     nextAt: Date.now() + RESULTS_SECONDS * 1000,

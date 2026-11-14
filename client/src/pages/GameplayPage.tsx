@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { CheckCircle2, LogOut, Mic, MicOff, RefreshCw, Send, Volume2, XCircle } from 'lucide-react';
+import { CheckCircle2, Headphones, LogOut, Mic, MicOff, RefreshCw, Send, Volume2, XCircle } from 'lucide-react';
 import { GUESS_MAX_LENGTH, GUESS_SECONDS, PERFORM_SECONDS, validateGuess } from '@ib/shared';
 import type { MyGuessState, PrivatePrompt, RoomState } from '@ib/shared';
 import { Screen } from '../components/Screen';
@@ -15,6 +15,7 @@ import { RoundProgress } from '../components/RoundProgress';
 import { VoiceStatusBar } from '../components/VoiceStatus';
 import { MicMeter } from '../components/MicMeter';
 import { MODE_INFO } from '../components/modeInfo';
+import { CelebrityPhoto } from '../components/CelebrityPhoto';
 import type { MicStatus, VoiceStatus } from '../types/voice';
 import { playerName } from '../utils/players';
 import { cn } from '../utils/cn';
@@ -37,6 +38,8 @@ export interface GameplayPageProps {
   voiceStatus: VoiceStatus;
   /** Browsers block audio playback until the user interacts with the page. */
   audioBlocked: boolean;
+  /** Voice chat is connected in this build. When false, voice/mic controls are replaced by a note. */
+  voiceEnabled?: boolean;
   serverOffsetMs?: number;
   onSubmitGuess: (guess: string) => void;
   onToggleMute: () => void;
@@ -48,15 +51,16 @@ export interface GameplayPageProps {
 
 export function GameplayPage(props: GameplayPageProps) {
   const { room, selfId, voiceStatus, micStatus, micMuted, serverOffsetMs, audioBlocked, onEnableAudio, onRetryVoice, onLeave } = props;
+  const voiceEnabled = props.voiceEnabled ?? true;
   const round = room.round;
   if (!round || (room.phase !== 'performing' && room.phase !== 'guessing')) return null;
 
   const performing = room.phase === 'performing';
   const isPerformer = round.performerId === selfId;
-  const performer = playerName(room.players, round.performerId);
+  const performer = round.performerName || playerName(room.players, round.performerId);
   const mode = room.settings.mode ?? 'celebrity';
   // Show the performer as "live" to everyone while the stage is open.
-  const live = performing && (!isPerformer || (micStatus === 'live' && !micMuted));
+  const live = performing && (!voiceEnabled || !isPerformer || (micStatus === 'live' && !micMuted));
 
   return (
     <Screen width="wide" right={<IconButton label="Leave game" color="danger" onClick={onLeave} icon={<LogOut className="size-5" strokeWidth={3} />} />}>
@@ -114,15 +118,15 @@ export function GameplayPage(props: GameplayPageProps) {
                 {isPerformer ? (performing ? 'Perform now!' : 'Time’s up!') : performer}
               </p>
               <div className="mt-1 flex items-center gap-2">
-                <MicMeter active={live && voiceStatus === 'connected' && !audioBlocked} />
+                <MicMeter active={live && (!voiceEnabled || (voiceStatus === 'connected' && !audioBlocked))} />
                 <span className="font-display text-sm tracking-wide text-fg/80 uppercase">
-                  {live ? (isPerformer ? 'Everyone can hear you' : 'Live') : 'Quiet'}
+                  {!live ? 'Quiet' : !voiceEnabled ? 'On stage' : isPerformer ? 'Everyone can hear you' : 'Live'}
                 </span>
               </div>
             </div>
           </section>
 
-          {!isPerformer && audioBlocked ? (
+          {voiceEnabled && !isPerformer && audioBlocked ? (
             <Banner
               kind="warning"
               action={
@@ -137,6 +141,7 @@ export function GameplayPage(props: GameplayPageProps) {
 
           {isPerformer ? <PerformerPanel {...props} /> : <GuessPanel key={round.number} {...props} />}
 
+          {voiceEnabled ? (
           <div className="flex flex-col gap-3">
             <VoiceStatusBar micStatus={isPerformer ? micStatus : 'off'} voiceStatus={voiceStatus} />
             {voiceStatus === 'failed' ? (
@@ -152,6 +157,12 @@ export function GameplayPage(props: GameplayPageProps) {
               </Banner>
             ) : null}
           </div>
+          ) : (
+            <p className="flex items-center gap-2 rounded-2xl border-[3px] border-dashed border-fg/25 p-3 text-sm font-bold text-fg-muted">
+              <Headphones className="size-5 shrink-0" strokeWidth={2.5} aria-hidden />
+              In-game voice chat arrives in the next update. For now, perform out loud in the same room or over a call.
+            </p>
+          )}
         </div>
 
         <Panel
@@ -171,7 +182,7 @@ export function GameplayPage(props: GameplayPageProps) {
   );
 }
 
-function PerformerPanel({ room, prompt, micStatus, micMuted, onToggleMute, onRetryMic }: GameplayPageProps) {
+function PerformerPanel({ room, prompt, micStatus, micMuted, onToggleMute, onRetryMic, voiceEnabled = true }: GameplayPageProps) {
   const round = room.round!;
   const performing = room.phase === 'performing';
   return (
@@ -187,14 +198,25 @@ function PerformerPanel({ room, prompt, micStatus, micMuted, onToggleMute, onRet
           {prompt?.mode === 'friends' ? 'Impersonate this player' : 'Impersonate this celebrity'}
         </p>
         {prompt ? (
-          <>
-            <p className="font-title text-[clamp(2.2rem,9vw,3.6rem)] leading-none break-words text-celeb-deep">{prompt.target}</p>
-            {prompt.category ? (
-              <span className="rounded-lg border-[2.5px] border-ink bg-gold px-3 font-display uppercase">{prompt.category}</span>
-            ) : null}
-            {prompt.hint ? <p className="mt-1 text-lg font-bold">Tip: {prompt.hint}</p> : null}
-            <p className="font-bold opacity-60">Don't say the name! Voice, catchphrases and style only.</p>
-          </>
+          <div className="flex w-full flex-col items-center gap-4 sm:flex-row sm:items-center sm:text-left">
+            <div className="w-44 shrink-0 animate-pop-in sm:w-48">
+              {prompt.mode === 'celebrity' ? (
+                <CelebrityPhoto src={prompt.image} name={prompt.target} credit={prompt.imageCredit} eager />
+              ) : prompt.targetPlayerId ? (
+                <div className="grid aspect-[3/4] place-items-center rounded-2xl border-[3px] border-ink bg-[linear-gradient(160deg,var(--color-friend),var(--color-pink))] shadow-[0_6px_0_var(--color-ink)]">
+                  <Character id={prompt.targetPlayerId} size={132} className="animate-bob" />
+                </div>
+              ) : null}
+            </div>
+            <div className="flex min-w-0 flex-1 flex-col items-center gap-2 sm:items-start">
+              <p className="font-title text-[clamp(2.2rem,9vw,3.4rem)] leading-none break-words text-celeb-deep">{prompt.target}</p>
+              {prompt.category ? (
+                <span className="rounded-lg border-[2.5px] border-ink bg-gold px-3 font-display uppercase">Tamil cinema {prompt.category}</span>
+              ) : null}
+              {prompt.hint ? <p className="text-lg font-bold">{prompt.hint}</p> : null}
+              <p className="font-bold opacity-60">Don't say the name! Voice, catchphrases and style only.</p>
+            </div>
+          </div>
         ) : (
           <p className="font-display text-xl">Unsealing your secret…</p>
         )}
@@ -203,7 +225,7 @@ function PerformerPanel({ room, prompt, micStatus, micMuted, onToggleMute, onRet
         </p>
       </section>
 
-      {performing ? (
+      {performing && voiceEnabled ? (
         <div className="flex flex-col gap-3">
           {micStatus === 'live' ? (
             <GameButton
@@ -232,9 +254,9 @@ function PerformerPanel({ room, prompt, micStatus, micMuted, onToggleMute, onRet
             </Banner>
           ) : null}
         </div>
-      ) : (
-        <Banner kind="info">Time's up — your mic is off. Everyone is locking in final guesses.</Banner>
-      )}
+      ) : !performing ? (
+        <Banner kind="info">Time's up! Everyone is locking in final guesses.</Banner>
+      ) : null}
     </>
   );
 }

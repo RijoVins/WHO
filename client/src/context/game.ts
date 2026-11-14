@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import type { GameMode, RoomState } from '@ib/shared';
+import type { GameMode, MyGuessState, PrivatePrompt, RoomState } from '@ib/shared';
 import type { ActionResult } from '../types/actions';
 
 export type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'reconnecting';
@@ -12,12 +12,22 @@ export interface GameSession {
   pendingCode: string | null;
   /** Why the seat was lost (expired, opened elsewhere...), if it was. */
   ended: string | null;
+  /** This player's secret for the current round (performer only). Memory only, never stored. */
+  prompt: PrivatePrompt | null;
+  /** This player's guesses in the current round. */
+  myGuess: MyGuessState | null;
+  /** serverNow − clientNow, so every countdown matches the server. */
+  serverOffsetMs: number;
   createRoom: (name: string, mode: GameMode) => Promise<ActionResult & { code?: string }>;
   joinRoom: (name: string, code: string) => Promise<ActionResult & { code?: string }>;
   leaveRoom: () => Promise<void>;
   selectMode: (mode: GameMode) => Promise<ActionResult>;
   setRounds: (rounds: number) => Promise<ActionResult>;
   startGame: () => Promise<ActionResult>;
+  submitGuess: (guess: string) => Promise<ActionResult & { correct?: boolean }>;
+  nextRound: () => Promise<ActionResult>;
+  playAgain: () => Promise<ActionResult>;
+  returnToLobby: () => Promise<ActionResult>;
   dismissEnded: () => void;
 }
 

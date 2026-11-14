@@ -5,6 +5,10 @@ import { normalizeRoomCode } from '@ib/shared';
 import type { GameMode } from '@ib/shared';
 import { useGame } from '../context/game';
 import { LobbyPage } from './LobbyPage';
+import { GameplayPage } from './GameplayPage';
+import type { GuessFeedback } from './GameplayPage';
+import { ResultsPage } from './ResultsPage';
+import { FinalResultsPage } from './FinalResultsPage';
 import { Screen } from '../components/Screen';
 import { Panel } from '../components/Panel';
 import { GameLink } from '../components/GameButton';
@@ -41,6 +45,10 @@ function InRoom() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
+  const [feedback, setFeedback] = useState<GuessFeedback>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [feedbackRound, setFeedbackRound] = useState<number | null>(null);
 
   const handle = async (p: Promise<{ ok: boolean; error?: string; code?: string }>) => {
     setError(null);
@@ -49,6 +57,11 @@ function InRoom() {
       if (r.code === 'NOT_IMPLEMENTED') setNotice(r.error ?? null);
       else setError(r.error ?? 'Something went wrong.');
     }
+  };
+
+  const leave = async () => {
+    await game.leaveRoom();
+    navigate('/', { replace: true });
   };
 
   switch (room.phase) {
@@ -71,15 +84,79 @@ function InRoom() {
             await handle(game.startGame());
             setStarting(false);
           }}
-          onLeave={async () => {
-            await game.leaveRoom();
-            navigate('/', { replace: true });
-          }}
+          onLeave={leave}
         />
       );
-    default:
-      // Gameplay screens are wired up together with the round logic.
-      return <Rejoining code={room.code} text="Game in progress…" />;
+    case 'performing':
+    case 'guessing': {
+      const roundNo = room.round?.number ?? null;
+      return (
+        <GameplayPage
+          room={room}
+          selfId={game.selfId!}
+          prompt={game.prompt}
+          myGuess={game.myGuess}
+          feedback={feedbackRound === roundNo ? feedback : null}
+          submitting={submitting}
+          serverOffsetMs={game.serverOffsetMs}
+          // Voice chat is the next milestone.
+          voiceEnabled={false}
+          micStatus="off"
+          micMuted={false}
+          voiceStatus="disconnected"
+          audioBlocked={false}
+          onToggleMute={() => {}}
+          onRetryMic={() => {}}
+          onRetryVoice={() => {}}
+          onEnableAudio={() => {}}
+          onSubmitGuess={async (text) => {
+            setSubmitting(true);
+            const r = await game.submitGuess(text);
+            setSubmitting(false);
+            setFeedbackRound(roundNo);
+            if (!r.ok) setFeedback({ kind: 'error', message: r.error });
+            else setFeedback(r.correct ? null : { kind: 'wrong', guess: text });
+          }}
+          onLeave={leave}
+        />
+      );
+    }
+    case 'round_results':
+      return room.lastResult ? (
+        <ResultsPage
+          room={room}
+          selfId={game.selfId!}
+          result={room.lastResult}
+          serverOffsetMs={game.serverOffsetMs}
+          onNext={() => void handle(game.nextRound())}
+          onLeave={leave}
+        />
+      ) : (
+        <Rejoining code={room.code} text="Loading results…" />
+      );
+    case 'finished':
+      return room.finalResult ? (
+        <FinalResultsPage
+          room={room}
+          selfId={game.selfId!}
+          final={room.finalResult}
+          busy={busy}
+          error={error}
+          onPlayAgain={async () => {
+            setBusy(true);
+            await handle(game.playAgain());
+            setBusy(false);
+          }}
+          onReturnToLobby={async () => {
+            setBusy(true);
+            await handle(game.returnToLobby());
+            setBusy(false);
+          }}
+          onLeave={leave}
+        />
+      ) : (
+        <Rejoining code={room.code} text="Loading final results…" />
+      );
   }
 }
 

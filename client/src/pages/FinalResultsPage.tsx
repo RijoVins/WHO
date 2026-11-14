@@ -7,6 +7,7 @@ import { Leaderboard } from '../components/Leaderboard';
 import { Character } from '../components/Character';
 import { Confetti } from '../components/Confetti';
 import { Rays } from '../components/Rays';
+import { Banner } from '../components/Banner';
 import { cn } from '../utils/cn';
 
 interface FinalResultsPageProps {
@@ -14,12 +15,13 @@ interface FinalResultsPageProps {
   selfId: string;
   final: FinalResult;
   busy?: boolean;
+  error?: string | null;
   onPlayAgain: () => void;
   onReturnToLobby: () => void;
   onLeave: () => void;
 }
 
-export function FinalResultsPage({ room, selfId, final, busy, onPlayAgain, onReturnToLobby, onLeave }: FinalResultsPageProps) {
+export function FinalResultsPage({ room, selfId, final, busy, error, onPlayAgain, onReturnToLobby, onLeave }: FinalResultsPageProps) {
   const isHost = room.hostId === selfId;
   const winners = final.rankings.filter((r) => final.winnerIds.includes(r.playerId));
   const tie = winners.length > 1;
@@ -58,6 +60,7 @@ export function FinalResultsPage({ room, selfId, final, busy, onPlayAgain, onRet
             <Leaderboard players={entries} selfId={selfId} />
           </Panel>
           <div className="flex flex-col gap-4 lg:sticky lg:top-5">
+            {error ? <Banner kind="error">{error}</Banner> : null}
             {isHost ? (
               <>
                 <GameButton color="lime" size="xl" fullWidth shine onClick={onPlayAgain} loading={busy} icon={<RotateCcw className="size-7" strokeWidth={3.5} aria-hidden />}>

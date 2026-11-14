@@ -14,14 +14,14 @@ Rooms hold 3–60 players, on phones, tablets or computers. Nobody installs an a
 | 1 | React + Vite web frontend, game-style design | ✅ Done |
 | 2 | Room creation and joining (Express + Socket.IO game server) | ✅ Done |
 | 3 | Real-time multiplayer lobby | ✅ Done |
-| 4 | Celebrity Mode and Friends Mode rounds | Next |
-| 5 | Guessing and scoring | |
-| 6 | LiveKit browser voice | |
+| 4 | Celebrity Mode and Friends Mode rounds | ✅ Done |
+| 5 | Guessing and scoring | ✅ Done |
+| 6 | LiveKit browser voice | Next |
 | 7 | Reconnection and error handling during play | |
 | 8 | Testing with 3, 10, 30 and 60 players | |
 | 9 | Public deployment | |
 
-Rooms, joining and the lobby are real and run on the server. When the host presses **Start Game**, the server checks every start rule: host only, at least 3 connected players, and a mode selected. It then replies that gameplay rounds arrive in the next update, because rounds are Milestone 4. The in-game screens can be previewed in the development **screen gallery** (see "Review the screens" below).
+The whole game runs on the server: rooms, the lobby, rounds, guessing, scoring and the final results. Voice chat comes next. Until then the game shows a note that the performer should perform out loud, in the same room or over a call.
 
 ## Design
 
@@ -53,6 +53,58 @@ The site is styled as a party video game, not a website:
 
 Rooms are kept in the server's memory, because a lobby only exists while people are playing. Restarting the server ends all rooms. PostgreSQL will be added when there is data worth keeping between games; nothing needs it yet.
 
+## How a game works
+
+1. The host presses **Start Game**. The server needs at least 3 connected players and a selected mode.
+2. Each round, the server picks a **performer**. Performers come from a shuffled deck, so nobody performs twice until everyone has had a turn.
+3. Only the performer receives the **secret**, through a private message to their own connection:
+   - **Celebrity Mode:** a Tamil celebrity's name and photo, from a deck that doesn't repeat until all photographed celebrities have been used.
+   - **Friends Mode:** another player's name and avatar. It is never the performer, and the imitated player can guess too.
+4. **Performing (45s), then final guesses (20s).** Countdowns use server timestamps, so every device shows the same time. Guesses are accepted during both stages, so fast listeners can earn the first-correct bonus. The round ends early once every connected guesser has either got it or used all 5 guesses.
+5. **Guessing rules:**
+   - The performer can't guess.
+   - Empty guesses are refused, and so is the same guess twice.
+   - Each player gets 5 guesses.
+   - Once you're right, you're locked in.
+   - Players can see whether their own guess was right, but the answer itself stays hidden until the reveal.
+6. **Scoring, all on the server:**
+   - 100 points for a correct guess, plus 50 for the first correct guess.
+   - 100 for the performer if every eligible guesser gets it.
+   - Each award is applied exactly once.
+7. **Reveal.** The celebrity's name and photo, or the friend's name and avatar, then who got it, the points, and the updated leaderboard. The next round starts after 10 seconds, or straight away if the host skips.
+8. **After the last round:** the winner, a podium, and the final rankings. The host can **Play Again** (same players, scores reset) or **Return to Lobby**.
+
+**Disconnections:**
+- **Performer drops mid-performance:** the round skips to final guesses.
+- **A guesser drops:** they stop counting toward "everyone guessed".
+- **Fewer than 2 players connected:** the game ends with the scores so far.
+- **Host leaves:** the host role passes on as in the lobby.
+- **Reconnecting mid-round:** the player gets the round back, including the performer's secret.
+
+### Answer matching
+
+Guesses are checked on the server. Case, accents, punctuation and spaces are ignored, and so are common honorifics such as "Thalapathy" or "Actor". Every celebrity has aliases: Vijay accepts *Thalapathy Vijay*, *Ilayathalapathy* and *Joseph Vijay*; Silambarasan accepts *STR* and *Simbu*; MGR accepts *M. G. Ramachandran*; and so on.
+
+Small typos are forgiven on longer names: none for 4 letters or fewer, 1 typo up to 8 letters, and 2 beyond that. A typo only counts if the guess isn't an equally close match for someone else, so *Vishal* is never accepted for *Vishnu Vishal*, and *Vijay* never for *Vijay Sethupathi*. Friends Mode uses the same rule against every player's name in the room.
+
+### Celebrity database
+
+`server/src/prompts/celebrities.ts` holds 60 Tamil cinema stars: 30 heroes and 30 heroines. Each has an id, name, display name, category, photo, aliases and photo credit. The file lives on the server only, so answers never ship to the browser.
+
+**Photos** are in `client/public/images/celebrities/`:
+
+- **Source:** Wikimedia Commons. Every one is freely licensed (CC BY, CC BY-SA, CC0 or GODL-India) and was taken from the person's own Wikipedia article or the Commons file named for them.
+- **Size:** resized to at most 420×560, with metadata removed, about 34 KB each.
+- **Credits:** author and license for each photo are in [`CREDITS.md`](client/public/images/celebrities/CREDITS.md). A short credit line is also shown under the photo in the game.
+- **If a photo fails to load,** a styled placeholder with the name appears instead.
+
+**No free photo exists yet for four people:** Raghava Lawrence, Pradeep Ranganathan, Harish Kalyan and Ivana. They stay in the database, but the game doesn't pick them, so a round never shows a celebrity without a photo. To enable one:
+
+1. Add a photo you have the right to use as `client/public/images/celebrities/<id>.jpg`.
+2. In `celebrities.ts`, set `image` and `credit` for that entry.
+
+**Adding a new celebrity:** add an entry and a photo the same way. The tests check that every photo exists, is a JPEG, isn't shared with anyone else, and that every alias points to exactly one celebrity.
+
 ## Tech stack
 
 | Part | Technology | Licence |
@@ -83,12 +135,15 @@ WHO/
 │       ├── app.ts          Express + Socket.IO setup; serves the built site in production
 │       ├── config.ts       environment settings
 │       ├── rooms/          RoomStore (all room rules), room codes, tokens, ids
+│       ├── game/           GameEngine (rounds, timers, scoring), answer matching, no-repeat decks
+│       ├── prompts/        celebrities.ts (60 Tamil stars: aliases, photo, credit)
 │       ├── sockets/        event handlers and payload validation
 │       ├── middleware/     rate limiting
 │       └── routes/         GET /api/health
 └── client/                 @ib/client, the website
     └── src/
-        ├── pages/          Home (menu), Create, Join, Room (lobby), Gameplay, Results, Final, 404
+        ├── pages/          Home (menu), Create, Join, Room (lobby → gameplay → results → final), 404
+        ├── public/images/celebrities/   the 56 celebrity photos + CREDITS.md
         ├── components/     GameTitle, GameButton, ModeTile, Character, Panel, PlayerGrid, ...
         ├── context/        GameProvider (connection, seat, room state), mode chosen on the menu
         ├── services/       socket.ts (connection + requests), session.ts (this tab's seat)
@@ -96,13 +151,6 @@ WHO/
         ├── dev/            development-only screen gallery and sample data
         └── test/           test setup
 ```
-
-### Round timing (Milestone 4)
-
-Each round has two stages that the server controls:
-
-1. **Performing (45s).** The performer's mic is live. Guesses are already open, so a fast correct guess can earn the "first correct" bonus.
-2. **Guessing (20s).** The mic is closed and players make their final guesses.
 
 ## Requirements
 
@@ -173,6 +221,16 @@ cloudflared tunnel --url http://localhost:3001   # in a second terminal
 
 `cloudflared` is Cloudflare's free tunnel client, and quick tunnels need no account. It prints an `https://….trycloudflare.com` address that anyone can open. Install it from Fedora's packages or from Cloudflare's website. The tunnel closes when you stop the command. For a permanent public game, see Milestone 9 (deployment).
 
+### Play a full game
+
+With the three tabs from above, start the game and then:
+
+1. The performer's tab shows **TOP SECRET** with the photo, or the friend's avatar. The other tabs show only who is performing and the countdown.
+2. In another tab, type a wrong guess. You'll see "Nope!" and a guess used up. Typing the same guess again is refused.
+3. Type the right answer, or an alias such as *Thalapathy*, in both guessing tabs. Once everyone has it, the round ends early: everyone sees the photo and name, who got it (+150 for the first, +100 for the second) and +100 for the performer.
+4. As host, press **Next round now** to skip the 10-second wait. After the last round, the podium appears. **Play Again** restarts with fresh scores, and **Return to Lobby** goes back to the lobby.
+5. To see the game handle a dropout, close the performer's tab mid-round. The round skips to final guesses and carries on.
+
 ### Automated tests
 
 `npm test` runs the following:
@@ -181,11 +239,20 @@ cloudflared tunnel --url http://localhost:3001   # in a second terminal
 - **Server (19 tests):**
   - The `RoomStore` rules.
   - The full lobby flow over real Socket.IO connections: create and join, live updates, leaving, invalid and unknown codes, taken names, **60 real connections with the 61st refused**, host-only actions, room isolation, disconnect and reconnect with the token, grace-period expiry with host handover, no duplicate seats, forged tokens, and both rate limits.
-- **Client:** the screens, including validation messages, host vs. guest controls, and the mode carried from the menu.
+- **Game (15 tests):**
+  - **Celebrity database:** 60 entries, every photo present and unique, and every alias resolving to only its own celebrity.
+  - **Answer matching:** aliases, typos and look-alike names.
+  - **Full games over real sockets, in both modes:**
+    - Every event other players receive is recorded and checked for the secret name or photo before the reveal.
+    - Guess rules, the first-correct and performer bonuses, and each award counted only once.
+    - Fair performer rotation, every round played, and the final results.
+    - Play Again, Return to Lobby, host-only skipping.
+    - The performer disconnecting and reconnecting, and the game ending safely when too few players remain.
+- **Client:** the screens, including validation messages, host vs. guest controls, the mode carried from the menu, and that the photo appears only on the performer's screen.
 
-## Review the in-game screens
+## Screen gallery (development)
 
-The lobby is live, but rounds come next. To preview the gameplay, results and final screens, open http://localhost:5173/dev/gallery, or use the small link under the menu. The gallery is only included in development builds. Its toolbar switches:
+To preview any screen with sample data, including voice states that aren't live yet, open http://localhost:5173/dev/gallery, or use the small link under the menu. The gallery is only included in development builds. Its toolbar switches:
 
 - the screen
 - room size: 3, 10, 30 or 60
