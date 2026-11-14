@@ -1,0 +1,12 @@
+# Example Caddy config: free automatic HTTPS (Let's Encrypt) for the game and LiveKit.
+# Point both DNS names at your server, then run: caddy run --config livekit/Caddyfile.example
+
+play.example.com {
+	# Game website + Socket.IO (npm start serves both on :3001)
+	reverse_proxy localhost:3001
+}
+
+voice.example.com {
+	# LiveKit signalling over secure WebSockets (wss://voice.example.com)
+	reverse_proxy localhost:7880
+}

@@ -41,7 +41,7 @@ export interface StoreEvents {
   /** A player's seat was freed after the grace period. */
   removed: [code: string, player: Player];
   /** Last player gone; the room no longer exists. */
-  closed: [code: string];
+  closed: [code: string, createdAt: number];
   /** Secret prompt for exactly one player. */
   prompt: [code: string, playerId: string, prompt: PrivatePrompt];
 }
@@ -180,7 +180,7 @@ export class RoomStore extends EventEmitter<StoreEvents> {
     if (room.players.size === 0) {
       this.engine.dispose(room);
       this.rooms.delete(code);
-      this.emit('closed', code);
+      this.emit('closed', code, room.createdAt);
       return true;
     }
     if (room.hostId === playerId) room.hostId = this.pickNewHost(room).id;

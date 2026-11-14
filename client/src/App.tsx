@@ -5,6 +5,7 @@ import { ArcadeBackground } from './components/ArcadeBackground';
 import { ModeProvider } from './context/ModeProvider';
 import { GameProvider } from './context/GameProvider';
 import { useGame } from './context/game';
+import { VoiceProvider } from './voice/VoiceProvider';
 import { HomePage } from './pages/HomePage';
 import { CreateRoomPage } from './pages/CreateRoomPage';
 import { JoinRoomPage } from './pages/JoinRoomPage';
@@ -14,10 +15,12 @@ import { NotFoundPage } from './pages/NotFoundPage';
 function Layout() {
   return (
     <GameProvider>
-      <ModeProvider>
-        <ArcadeBackground />
-        <Outlet />
-      </ModeProvider>
+      <VoiceProvider>
+        <ModeProvider>
+          <ArcadeBackground />
+          <Outlet />
+        </ModeProvider>
+      </VoiceProvider>
     </GameProvider>
   );
 }

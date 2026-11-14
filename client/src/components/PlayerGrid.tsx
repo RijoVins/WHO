@@ -12,10 +12,13 @@ interface PlayerGridProps {
   showScores?: boolean;
   /** Narrow single-column-ish tiles for sidebars. */
   dense?: boolean;
+  /** Voice: players speaking right now, and players whose mic is on. */
+  speakingIds?: ReadonlySet<string>;
+  micOnIds?: ReadonlySet<string>;
 }
 
 /** Player roster. Tiles pop in one after another, like players dropping into a lobby. */
-export function PlayerGrid({ players, selfId, performerId, correctIds = [], showScores, dense }: PlayerGridProps) {
+export function PlayerGrid({ players, selfId, performerId, correctIds = [], showScores, dense, speakingIds, micOnIds }: PlayerGridProps) {
   return (
     <ul
       className={cn(
@@ -27,6 +30,7 @@ export function PlayerGrid({ players, selfId, performerId, correctIds = [], show
         const performing = p.id === performerId;
         const correct = correctIds.includes(p.id);
         const me = p.id === selfId;
+        const talking = speakingIds?.has(p.id) ?? false;
         return (
           <li
             key={p.id}
@@ -37,8 +41,17 @@ export function PlayerGrid({ players, selfId, performerId, correctIds = [], show
               me && !performing && 'ring-[3px] ring-cyan ring-offset-2 ring-offset-night-800',
             )}
           >
-            <span className="relative">
+            <span
+              className={cn('relative rounded-full transition-shadow', talking && 'animate-pulse-ring shadow-[0_0_0_3px_var(--color-lime)]')}
+              style={talking ? ({ ['--ring-color' as string]: 'rgb(155 234 46 / 0.75)' } as React.CSSProperties) : undefined}
+              aria-label={talking ? `${p.name} is speaking` : undefined}
+            >
               <Character id={p.id} size={46} dimmed={!p.connected} />
+              {micOnIds?.has(p.id) ? (
+                <span className="absolute -right-1 -bottom-1 grid size-5 place-items-center rounded-full border-2 border-ink bg-lime" title="Mic on">
+                  <Mic className="size-3 text-on-bright" strokeWidth={3.5} aria-label="Mic on" />
+                </span>
+              ) : null}
               {p.isHost ? (
                 <Crown
                   className="absolute -top-3 -left-1.5 size-6 -rotate-12 fill-gold text-ink"

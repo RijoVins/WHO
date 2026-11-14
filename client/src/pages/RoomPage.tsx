@@ -9,6 +9,8 @@ import { GameplayPage } from './GameplayPage';
 import type { GuessFeedback } from './GameplayPage';
 import { ResultsPage } from './ResultsPage';
 import { FinalResultsPage } from './FinalResultsPage';
+import { useVoice } from '../voice/voice';
+import { VoiceDockConnected } from '../voice/VoiceDockConnected';
 import { Screen } from '../components/Screen';
 import { Panel } from '../components/Panel';
 import { GameLink } from '../components/GameButton';
@@ -37,7 +39,18 @@ export function RoomPage() {
 }
 
 function InRoom() {
+  return (
+    <>
+      <InRoomScreen />
+      {/* Voice chat stays connected across every screen in the room. */}
+      <VoiceDockConnected />
+    </>
+  );
+}
+
+function InRoomScreen() {
   const game = useGame();
+  const voice = useVoice();
   const navigate = useNavigate();
   const location = useLocation();
   const room = game.room!;
@@ -75,6 +88,8 @@ function InRoom() {
           error={error}
           notice={notice}
           reconnecting={game.connection === 'reconnecting' || game.connection === 'connecting'}
+          speakingIds={voice.speaking}
+          micOnIds={voice.micOn}
           onChangeMode={(mode: GameMode) => void handle(game.selectMode(mode))}
           onChangeRounds={(n) => void handle(game.setRounds(n))}
           onStart={async () => {
@@ -99,16 +114,10 @@ function InRoom() {
           feedback={feedbackRound === roundNo ? feedback : null}
           submitting={submitting}
           serverOffsetMs={game.serverOffsetMs}
-          // Voice chat is the next milestone.
-          voiceEnabled={false}
-          micStatus="off"
-          micMuted={false}
-          voiceStatus="disconnected"
-          audioBlocked={false}
-          onToggleMute={() => {}}
-          onRetryMic={() => {}}
-          onRetryVoice={() => {}}
-          onEnableAudio={() => {}}
+          micStatus={voice.mic}
+          speakingIds={voice.speaking}
+          micOnIds={voice.micOn}
+          onToggleMic={() => void voice.toggleMic()}
           onSubmitGuess={async (text) => {
             setSubmitting(true);
             const r = await game.submitGuess(text);

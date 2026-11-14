@@ -27,13 +27,16 @@ interface LobbyPageProps {
   notice?: string | null;
   /** Connection to the game server dropped; it is retrying. */
   reconnecting?: boolean;
+  /** Voice chat: who is speaking, whose mic is on. */
+  speakingIds?: ReadonlySet<string>;
+  micOnIds?: ReadonlySet<string>;
   onChangeMode: (mode: GameMode) => void;
   onChangeRounds: (rounds: number) => void;
   onStart: () => void;
   onLeave: () => void;
 }
 
-export function LobbyPage({ room, selfId, justCreated, starting, error, notice, reconnecting, onChangeMode, onChangeRounds, onStart, onLeave }: LobbyPageProps) {
+export function LobbyPage({ room, selfId, justCreated, starting, error, notice, reconnecting, speakingIds, micOnIds, onChangeMode, onChangeRounds, onStart, onLeave }: LobbyPageProps) {
   const isHost = room.hostId === selfId;
   const connected = room.players.filter((p) => p.connected).length;
   const blocker = startBlocker(room);
@@ -116,7 +119,7 @@ export function LobbyPage({ room, selfId, justCreated, starting, error, notice, 
           }
         >
           {connected < MIN_PLAYERS ? <MinPlayersMeter connected={connected} /> : null}
-          <PlayerGrid players={room.players} selfId={selfId} />
+          <PlayerGrid players={room.players} selfId={selfId} speakingIds={speakingIds} micOnIds={micOnIds} />
         </Panel>
       </div>
     </Screen>

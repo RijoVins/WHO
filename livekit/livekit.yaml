@@ -1,0 +1,30 @@
+# Production LiveKit config for Impersonation Battle (audio only).
+# Replace the example domains, then follow "Deploy voice" in README.md.
+# API keys are NOT stored here: pass them as LIVEKIT_KEYS="<key>: <secret>".
+
+port: 7880                 # signalling (behind HTTPS/WSS via Caddy)
+bind_addresses: [""]
+logging:
+  level: info
+
+rtc:
+  tcp_port: 7881           # ICE over TCP when UDP is blocked
+  port_range_start: 50000  # ICE over UDP (best quality)
+  port_range_end: 60000
+  use_external_ip: true    # advertise the server's public IP to browsers
+
+turn:
+  # Built-in TURN relay for players behind strict NATs, carrier networks or firewalls.
+  enabled: true
+  domain: turn.example.com # DNS A record pointing at this server
+  udp_port: 3478           # TURN over UDP
+  tls_port: 5349           # TURN over TLS (TCP) for networks that block UDP
+  relay_range_start: 30000 # UDP ports the relay uses (open these in the firewall)
+  relay_range_end: 40000
+  # Certificate for turn.example.com (e.g. issued by Caddy or certbot):
+  cert_file: /etc/livekit/turn.crt
+  key_file: /etc/livekit/turn.key
+
+room:
+  empty_timeout: 300       # close voice rooms 5 minutes after the last person leaves
+  max_participants: 60     # same limit as a game room

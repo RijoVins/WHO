@@ -24,6 +24,7 @@ export async function startServer(timings: Partial<Timings>, extra: Partial<Serv
       graceMs: 400,
       roomCreateBurst: 1000,
       production: false,
+      voice: null,
       ...extra,
     },
     { timings },

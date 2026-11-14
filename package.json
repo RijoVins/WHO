@@ -10,14 +10,16 @@
     "client"
   ],
   "scripts": {
-    "dev": "concurrently -k -n server,client -c magenta,cyan \"npm run dev -w server\" \"npm run dev -w client\"",
+    "dev": "concurrently -k -n server,client,voice -c magenta,cyan,green \"npm run dev -w server\" \"npm run dev -w client\" \"bash scripts/dev-voice.sh\"",
     "dev:server": "npm run dev -w server",
     "dev:client": "npm run dev -w client",
     "build": "npm run build -w client",
     "start": "npm run start -w server",
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "lint": "npm run lint --workspaces --if-present"
+    "lint": "npm run lint --workspaces --if-present",
+    "dev:voice": "bash scripts/dev-voice.sh",
+    "voice:install": "bash scripts/get-livekit.sh"
   },
   "engines": {
     "node": ">=20.19"

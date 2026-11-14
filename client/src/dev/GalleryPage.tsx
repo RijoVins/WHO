@@ -14,6 +14,7 @@ import { ResultsPage } from '../pages/ResultsPage';
 import { FinalResultsPage } from '../pages/FinalResultsPage';
 import type { MicStatus, VoiceStatus } from '../types/voice';
 import { cn } from '../utils/cn';
+import { VoiceDock } from '../components/VoiceDock';
 import { SELF_ID, galleryAnswer, makeFinal, makePrompt, makeRoom, makeRoundResult } from './fixtures';
 
 type Screen = 'lobby' | 'performing' | 'guessing' | 'results' | 'final';
@@ -82,11 +83,9 @@ export default function GalleryPage() {
   };
 
   const micStatus: MicStatus =
-    voiceCase === 'requesting' || voiceCase === 'denied' || voiceCase === 'unavailable'
-      ? voiceCase
-      : screen === 'performing'
-        ? 'live'
-        : 'off';
+    voiceCase === 'requesting' || voiceCase === 'denied' || voiceCase === 'unavailable' ? voiceCase : muted ? 'off' : 'live';
+  // Pretend the performer is talking so the speaking indicators show.
+  const speakingIds = new Set(inGame && voiceCase === 'ok' && room.round ? [room.round.performerId] : []);
   const voiceStatus: VoiceStatus = voiceCase === 'failed' ? 'failed' : 'connected';
   const roleLabels = inGame ? ['Performer', 'Guesser'] : ['Host', 'Guest'];
 
@@ -118,9 +117,8 @@ export default function GalleryPage() {
           myGuess={mainRole ? null : guess}
           feedback={feedback}
           micStatus={micStatus}
-          micMuted={muted}
-          voiceStatus={voiceStatus}
-          audioBlocked={voiceCase === 'blocked'}
+          speakingIds={speakingIds}
+          micOnIds={speakingIds}
           onSubmitGuess={(g) => {
             // Gallery-only answer check; the real check runs on the server.
             const correct = g.toLowerCase() === galleryAnswer(mode, room).toLowerCase();
@@ -132,10 +130,7 @@ export default function GalleryPage() {
             }));
             setFeedback(correct ? null : { kind: 'wrong', guess: g });
           }}
-          onToggleMute={() => setMuted((m) => !m)}
-          onRetryMic={() => setVoiceCase('ok')}
-          onRetryVoice={() => setVoiceCase('ok')}
-          onEnableAudio={() => setVoiceCase('ok')}
+          onToggleMic={() => setMuted((m) => !m)}
           onLeave={() => go('lobby')}
         />
       );
@@ -213,6 +208,25 @@ export default function GalleryPage() {
         <Chip onClick={reset}>↻ Reset</Chip>
       </nav>
       {page}
+      {/* Preview of the voice dock in the chosen voice state. */}
+      <VoiceDock
+        status={voiceStatus === 'failed' ? 'failed' : 'connected'}
+        mic={micStatus}
+        message={
+          voiceCase === 'denied'
+            ? 'Microphone blocked. Allow it from the lock/site icon in your address bar, then tap the mic again.'
+            : voiceCase === 'unavailable'
+              ? 'No microphone found. Plug one in or switch devices, then tap the mic.'
+              : voiceCase === 'failed'
+                ? "Can't reach the voice server. Retrying…"
+                : null
+        }
+        audioBlocked={voiceCase === 'blocked'}
+        selfSpeaking={micStatus === 'live'}
+        onToggleMic={() => setMuted((m) => !m)}
+        onEnableAudio={() => setVoiceCase('ok')}
+        onRetry={() => setVoiceCase('ok')}
+      />
     </>
   );
 }

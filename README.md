@@ -16,12 +16,12 @@ Rooms hold 3–60 players, on phones, tablets or computers. Nobody installs an a
 | 3 | Real-time multiplayer lobby | ✅ Done |
 | 4 | Celebrity Mode and Friends Mode rounds | ✅ Done |
 | 5 | Guessing and scoring | ✅ Done |
-| 6 | LiveKit browser voice | Next |
-| 7 | Reconnection and error handling during play | |
+| 6 | LiveKit browser voice | ✅ Done (local; public deployment untested) |
+| 7 | Reconnection and error handling during play | Next |
 | 8 | Testing with 3, 10, 30 and 60 players | |
 | 9 | Public deployment | |
 
-The whole game runs on the server: rooms, the lobby, rounds, guessing, scoring and the final results. Voice chat comes next. Until then the game shows a note that the performer should perform out loud, in the same room or over a call.
+The whole game runs on the server: rooms, the lobby, rounds, guessing, scoring and the final results. Voice chat runs on LiveKit. It has been tested end to end with a local LiveKit server, but playing across different networks needs a publicly reachable LiveKit server, and that hasn't been tested yet (see "Deploy voice").
 
 ## Design
 
@@ -105,6 +105,71 @@ Small typos are forgiven on longer names: none for 4 letters or fewer, 1 typo up
 
 **Adding a new celebrity:** add an entry and a photo the same way. The tests check that every photo exists, is a JPEG, isn't shared with anyone else, and that every alias points to exactly one celebrity.
 
+## Voice chat
+
+Every game room has its own LiveKit voice room. Everyone in it can talk and hear each other: the performer does the impression, and everyone else listens and types guesses as before. Game rules, timers and scoring are unchanged.
+
+- **Joining.** A player joins their room's voice chat automatically once they have a seat. They stay connected across the lobby, every round, the results and Play Again, using one connection the whole time. Leaving the room disconnects them from voice.
+- **Microphone.**
+  - Mics start **off**. The browser only asks for permission when the player taps **Turn on mic**.
+  - Anyone can mute at any time. Muting releases the microphone, so the browser's mic light goes off.
+  - If it's the performer's turn and their mic is off, they get a clear prompt to turn it on.
+- **Voice panel.** A dock pinned to the bottom of every in-room screen shows:
+  - the voice status (on, joining, reconnecting or failed, with a Retry button)
+  - **Tap to hear**, when the browser blocks sound until the player taps
+  - the mic button: Turn on mic / Mute / Allow mic… / Try mic again
+- **Speaking indicators.** A lime ring pulses around the avatar of anyone who is speaking, based on LiveKit's audio levels. A small mic badge shows whose mic is on. The performer's spotlight shows "Speaking" and moving bars while they talk.
+- **Errors, with clear messages:**
+  - microphone permission denied
+  - no microphone
+  - microphone busy in another app
+  - microphone unplugged mid-game
+  - page not on HTTPS (browsers require it for microphones)
+  - voice server unreachable (it retries automatically, then shows "No voice" with Retry; the game keeps working)
+  - voice dropping and reconnecting
+  - the same player opening a second tab
+- **Security.**
+  - Voice tokens are made only on the game server, only for a player seated in that room, for that room's voice room only, with the player's id as their identity.
+  - Tokens allow microphone audio only. LiveKit refuses camera and screen-share tracks.
+  - The API secret never leaves the server.
+  - Because the identity is the player id, a reconnect or second tab replaces the old voice connection rather than creating a duplicate.
+- **No camera or video**, anywhere.
+
+### Deploy voice (players on different networks)
+
+Players on different Wi-Fi networks, mobile data or other countries need a **publicly reachable LiveKit server** with a TURN relay. The local development LiveKit only works on your own network. These steps have **not** been tested yet.
+
+1. **Server.** Get a Linux VPS with a public IP. A small one is enough for a few rooms, but audio bandwidth grows with players: roughly 50 kbit/s per listener for each speaker.
+2. **DNS.** Point three names at the server, for example `play.example.com` (game), `voice.example.com` (LiveKit) and `turn.example.com` (TURN relay).
+3. **Firewall.** Open these ports:
+
+   | Ports | Protocol | Used for |
+   |---|---|---|
+   | 80, 443 | TCP | HTTPS and secure WebSockets |
+   | 7881 | TCP | WebRTC over TCP |
+   | 50000–60000 | UDP | WebRTC media |
+   | 3478 | UDP | TURN |
+   | 5349 | TCP | TURN over TLS |
+   | 30000–40000 | UDP | TURN relay |
+
+4. **LiveKit.**
+   - Install LiveKit: `bash scripts/get-livekit.sh` on the server, or the official `livekit/livekit-server` Docker image.
+   - Edit the domains in [`livekit/livekit.yaml`](livekit/livekit.yaml) and point `cert_file` / `key_file` at a certificate for the TURN domain (certbot or Caddy can issue it).
+   - Make an API key and a long random secret.
+   - Run:
+     ```bash
+     LIVEKIT_KEYS="<key>: <secret>" livekit-server --config livekit/livekit.yaml
+     ```
+5. **HTTPS.** Put Caddy in front, using [`livekit/Caddyfile.example`](livekit/Caddyfile.example). Caddy gets free Let's Encrypt certificates automatically, and gives `https://play.example.com` and `wss://voice.example.com`.
+6. **Game server.** Set the environment variables and start it:
+   ```bash
+   LIVEKIT_URL=wss://voice.example.com LIVEKIT_API_KEY=<key> LIVEKIT_API_SECRET=<secret> \
+     TRUST_PROXY=true npm start
+   ```
+7. **Test.** Join from a phone on mobile data and a computer on a different Wi-Fi network. Check that both hear each other, and that the voice panel says *Voice on*.
+
+LiveKit's own [self-hosting guide](https://docs.livekit.io/home/self-hosting/deployment/) covers more setups. An alternative to self-hosting is LiveKit Cloud: set the three variables to your Cloud project's values. It's a third-party hosted service with a free tier and paid plans beyond it.
+
 ## Tech stack
 
 | Part | Technology | Licence |
@@ -113,14 +178,17 @@ Small typos are forgiven on longer names: none for 4 letters or fewer, 1 typo up
 | Fonts | Luckiest Guy, Lilita One, Nunito, self-hosted via Fontsource (no requests to Google at runtime) | OFL |
 | Game server | Node.js, Express 5, Socket.IO 4, TypeScript (run with tsx) | MIT |
 | Tests | Vitest, Testing Library, jsdom, real Socket.IO clients against a real server | MIT |
-| Voice (Milestone 6) | LiveKit SFU (self-hosted) and the LiveKit browser SDK, audio only | Apache-2.0 |
+| Voice | LiveKit server 1.13 (self-hosted), livekit-server-sdk (tokens), livekit-client (browser), audio only | Apache-2.0 |
 
 ## Project structure
 
 ```
 WHO/
 ├── package.json            npm workspaces root (dev, build, start, test, typecheck, lint)
-├── .env.example            server settings with defaults
+├── .env.example            server + LiveKit settings with defaults
+├── livekit/                production LiveKit config (TURN) and example Caddyfile
+├── scripts/                get-livekit.sh (download + verify LiveKit), dev-voice.sh
+├── .tools/                 (git-ignored) local LiveKit binary for development
 ├── shared/                 @ib/shared, used by both client and server
 │   └── src/
 │       ├── constants.ts    3–60 players, 6-char codes, timings, reconnect grace period
@@ -138,6 +206,7 @@ WHO/
 │       ├── game/           GameEngine (rounds, timers, scoring), answer matching, no-repeat decks
 │       ├── prompts/        celebrities.ts (60 Tamil stars: aliases, photo, credit)
 │       ├── sockets/        event handlers and payload validation
+│       ├── livekit/        voice tokens (room-scoped, mic-only) and voice room cleanup
 │       ├── middleware/     rate limiting
 │       └── routes/         GET /api/health
 └── client/                 @ib/client, the website
@@ -146,6 +215,7 @@ WHO/
         ├── public/images/celebrities/   the 56 celebrity photos + CREDITS.md
         ├── components/     GameTitle, GameButton, ModeTile, Character, Panel, PlayerGrid, ...
         ├── context/        GameProvider (connection, seat, room state), mode chosen on the menu
+        ├── voice/          VoiceProvider (LiveKit connection, mic, speaking, retries), mic error messages
         ├── services/       socket.ts (connection + requests), session.ts (this tab's seat)
         ├── hooks/ utils/ types/ styles/
         ├── dev/            development-only screen gallery and sample data
@@ -155,24 +225,26 @@ WHO/
 ## Requirements
 
 - Node.js 20.19 or newer (developed on Node 22) and npm 10
-- Nothing else for now. Docker is only needed from Milestone 6, for LiveKit voice.
+- Linux or macOS for the local voice server. `npm run dev` downloads LiveKit's official binary on first run (about 19 MB, checksum-verified, into `.tools/`). No Docker or `sudo` needed.
 
 ## Run it
 
 ```bash
 npm install          # from the repository root, first time and after pulling changes
-npm run dev          # starts the game server (port 3001) and the website (port 5173)
+npm run dev          # game server (:3001) + website (:5173) + local LiveKit voice (:7880)
 ```
 
 Open **http://localhost:5173**. Stop everything with `Ctrl+C`.
 
-In development, the website forwards Socket.IO and `/api` requests to the game server. Browsers, including phones, only ever need the `:5173` address.
+In development, the website forwards Socket.IO and `/api` to the game server, and `/livekit` to LiveKit. Browsers, including phones, only ever need the `:5173` address. The local LiveKit uses its built-in development keys, so no `.env` is needed.
 
 Other commands:
 
 ```bash
 npm run dev:server   # only the game server
 npm run dev:client   # only the website (expects the server on :3001)
+npm run dev:voice    # only the local LiveKit server
+npm run voice:install # (re)download the LiveKit binary into .tools/
 npm test             # all tests: shared, server (real sockets), client
 npm run typecheck
 npm run lint
@@ -200,14 +272,23 @@ Each browser tab is its own player, because the seat is stored per tab.
    - **Reconnecting.** Reload Tab 3: they come straight back to the same seat with no duplicate. Close Tab 3: the others see *Reconnecting* on their tile, and after 60 seconds the seat is freed.
    - **Isolation.** Create a second room in another tab. The two rooms never see each other.
 
+### Voice on one computer
+
+1. In each tab, wait for **Voice on** in the panel at the bottom, then tap **Turn on mic** and allow the microphone.
+2. Talk. The speaking ring lights up around your avatar in the other tabs. Use headphones, or every tab will play the others back into your mic.
+3. Tap **Mute**. Your mic badge disappears for the others.
+4. Start a game and play rounds. The voice panel stays on *Voice on* the whole time, with no reconnects.
+5. Reload a tab: it rejoins voice automatically. Leave the room: you drop out of voice for everyone.
+
 ### A phone or another computer on the same Wi-Fi
 
 1. Run `npm run dev`. Vite prints a **Network** address, such as `http://192.168.1.20:5173`.
 2. Open that address on the phone and join with the room code.
-3. If it doesn't load, Fedora's firewall is blocking the port. Allow it until the next reboot with:
+3. If it doesn't load, Fedora's firewall is blocking the port. Allow the game and voice ports until the next reboot with:
    ```bash
-   sudo firewall-cmd --add-port=5173/tcp
+   sudo firewall-cmd --add-port=5173/tcp --add-port=7881/tcp --add-port=7882/udp
    ```
+4. **Voice on a phone:** to **speak**, browsers require HTTPS for the microphone, so a phone on `http://192.168…` can't use its mic. Use the tunnel below or a real deployment. Listening over plain `http://` should work, since HTTPS is only needed to capture audio, but that hasn't been tested on a real phone.
 
 ### Players on different internet connections
 
@@ -220,6 +301,8 @@ cloudflared tunnel --url http://localhost:3001   # in a second terminal
 ```
 
 `cloudflared` is Cloudflare's free tunnel client, and quick tunnels need no account. It prints an `https://….trycloudflare.com` address that anyone can open. Install it from Fedora's packages or from Cloudflare's website. The tunnel closes when you stop the command. For a permanent public game, see Milestone 9 (deployment).
+
+**Voice through a tunnel:** the tunnel carries the website, the game and LiveKit's connection setup, but **not the audio itself**. Audio needs a LiveKit server that players' devices can reach directly, or a TURN relay. A LiveKit server running on your home computer usually can't be reached from other networks. To play with voice across networks, use a public LiveKit server (see "Deploy voice") and point the game server at it with the three `LIVEKIT_*` variables.
 
 ### Play a full game
 
@@ -248,11 +331,36 @@ With the three tabs from above, start the game and then:
     - Fair performer rotation, every round played, and the final results.
     - Play Again, Return to Lobby, host-only skipping.
     - The performer disconnecting and reconnecting, and the game ending safely when too few players remain.
-- **Client:** the screens, including validation messages, host vs. guest controls, the mode carried from the menu, and that the photo appears only on the performer's screen.
+- **Voice (4 server tests):**
+  - Only seated players get a token.
+  - Each token is signed for the right room and identity, with microphone-only permissions, and the secret is never sent.
+  - Different game rooms get different voice rooms.
+  - Players who have left are refused.
+  - Reconnected players get the same identity.
+  - Voice reports as unavailable when it isn't configured.
+- **Client:** the screens, including:
+  - validation messages, host vs. guest controls, and the mode carried from the menu
+  - the photo appearing only on the performer's screen
+  - the voice panel in every state
+  - microphone error messages
+  - speaking indicators
+  - the performer's "turn on your mic" prompt
+
+**Voice end to end** was checked with a local LiveKit server and three Chromium sessions using a speech-like fake microphone, in both modes:
+
+- All three joined the same voice room, with no duplicates.
+- Each received and played the other two players' audio.
+- Mic badges and speaking rings updated live.
+- Mute was seen by the others.
+- No reconnects happened across rounds.
+- A reload rejoined, and leaving removed the player from voice.
+- Permission denied, and the voice server going down and coming back, both showed clear messages.
+
+**Not yet tested:** real phones (Android Chrome, iPhone Safari), Edge, Firefox, and players on different networks against a public LiveKit server.
 
 ## Screen gallery (development)
 
-To preview any screen with sample data, including voice states that aren't live yet, open http://localhost:5173/dev/gallery, or use the small link under the menu. The gallery is only included in development builds. Its toolbar switches:
+To preview any screen with sample data, including every voice-panel state, open http://localhost:5173/dev/gallery, or use the small link under the menu. The gallery is only included in development builds. Its toolbar switches:
 
 - the screen
 - room size: 3, 10, 30 or 60
@@ -267,8 +375,9 @@ Local development is free. Every dependency is open source and everything runs o
 
 Costs only appear when you host the game publicly for players on other networks:
 
-- **A server** for the game server and, later, LiveKit. LiveKit needs open UDP ports and bandwidth, which usually means a VPS.
-- **Bandwidth and TURN relay traffic** (once voice is added). Players behind strict firewalls or mobile carriers have their audio relayed, which uses server bandwidth.
+- **A server** for the game server and LiveKit. LiveKit needs open UDP ports and bandwidth, which usually means a VPS.
+- **Bandwidth and TURN relay traffic.** Players behind strict firewalls or mobile carriers have their audio relayed, which uses server bandwidth.
+- **LiveKit Cloud (optional).** Instead of self-hosting, you can use LiveKit's hosted service, which has a free tier and paid plans beyond it. Self-hosting LiveKit is free apart from the server.
 - **A domain name.** HTTPS is required for microphone access outside `localhost`. Let's Encrypt certificates are free; domains usually are not.
 
 Cloudflare quick tunnels (above) are free for testing. Milestone 9 will cover public deployment step by step. The project does not use any paid APIs.

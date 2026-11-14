@@ -6,6 +6,7 @@ import path from 'node:path';
 import express from 'express';
 import { Server } from 'socket.io';
 import { RoomStore } from './rooms/RoomStore.ts';
+import { VoiceService } from './livekit/voice.ts';
 import { registerHandlers } from './sockets/registerHandlers.ts';
 import type { GameServer } from './sockets/registerHandlers.ts';
 import { healthRouter } from './routes/health.ts';
@@ -36,7 +37,8 @@ export function createGameServer(config: ServerConfig, opts: { timings?: Partial
     cors: config.clientOrigins.length ? { origin: config.clientOrigins } : undefined,
     connectionStateRecovery: undefined,
   });
-  registerHandlers(io, store, { trustProxy: config.trustProxy, roomCreateBurst: config.roomCreateBurst });
+  const voice = config.voice ? new VoiceService(config.voice) : null;
+  registerHandlers(io, store, { trustProxy: config.trustProxy, roomCreateBurst: config.roomCreateBurst, voice });
 
   return {
     app,

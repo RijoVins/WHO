@@ -16,6 +16,7 @@
     "@fontsource/lilita-one": "^5.3.0",
     "@fontsource/luckiest-guy": "^5.3.0",
     "@ib/shared": "*",
+    "livekit-client": "^2.24.1",
     "lucide-react": "^1.73.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",

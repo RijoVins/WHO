@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { CheckCircle2, Headphones, LogOut, Mic, MicOff, RefreshCw, Send, Volume2, XCircle } from 'lucide-react';
+import { CheckCircle2, LogOut, Mic, Send, XCircle } from 'lucide-react';
 import { GUESS_MAX_LENGTH, GUESS_SECONDS, PERFORM_SECONDS, validateGuess } from '@ib/shared';
 import type { MyGuessState, PrivatePrompt, RoomState } from '@ib/shared';
 import { Screen } from '../components/Screen';
@@ -12,11 +12,10 @@ import { PlayerGrid } from '../components/PlayerGrid';
 import { Character } from '../components/Character';
 import { CountdownTimer } from '../components/CountdownTimer';
 import { RoundProgress } from '../components/RoundProgress';
-import { VoiceStatusBar } from '../components/VoiceStatus';
 import { MicMeter } from '../components/MicMeter';
 import { MODE_INFO } from '../components/modeInfo';
 import { CelebrityPhoto } from '../components/CelebrityPhoto';
-import type { MicStatus, VoiceStatus } from '../types/voice';
+import type { MicStatus } from '../types/voice';
 import { playerName } from '../utils/players';
 import { cn } from '../utils/cn';
 
@@ -33,25 +32,20 @@ export interface GameplayPageProps {
   myGuess: MyGuessState | null;
   feedback?: GuessFeedback;
   submitting?: boolean;
-  micStatus: MicStatus;
-  micMuted: boolean;
-  voiceStatus: VoiceStatus;
-  /** Browsers block audio playback until the user interacts with the page. */
-  audioBlocked: boolean;
-  /** Voice chat is connected in this build. When false, voice/mic controls are replaced by a note. */
-  voiceEnabled?: boolean;
+  /** This device's microphone (drives the performer's "turn on your mic" prompt). */
+  micStatus?: MicStatus;
+  /** Voice chat: who is speaking right now, and whose mic is on. */
+  speakingIds?: ReadonlySet<string>;
+  micOnIds?: ReadonlySet<string>;
   serverOffsetMs?: number;
   onSubmitGuess: (guess: string) => void;
-  onToggleMute: () => void;
-  onRetryMic: () => void;
-  onRetryVoice: () => void;
-  onEnableAudio: () => void;
+  /** Turn this device's mic on/off (the full controls live in the voice dock). */
+  onToggleMic?: () => void;
   onLeave: () => void;
 }
 
 export function GameplayPage(props: GameplayPageProps) {
-  const { room, selfId, voiceStatus, micStatus, micMuted, serverOffsetMs, audioBlocked, onEnableAudio, onRetryVoice, onLeave } = props;
-  const voiceEnabled = props.voiceEnabled ?? true;
+  const { room, selfId, micStatus = 'off', speakingIds, micOnIds, serverOffsetMs, onLeave } = props;
   const round = room.round;
   if (!round || (room.phase !== 'performing' && room.phase !== 'guessing')) return null;
 
@@ -59,8 +53,17 @@ export function GameplayPage(props: GameplayPageProps) {
   const isPerformer = round.performerId === selfId;
   const performer = round.performerName || playerName(room.players, round.performerId);
   const mode = room.settings.mode ?? 'celebrity';
-  // Show the performer as "live" to everyone while the stage is open.
-  const live = performing && (!voiceEnabled || !isPerformer || (micStatus === 'live' && !micMuted));
+  // Driven by real audio levels from the voice chat.
+  const speaking = speakingIds?.has(round.performerId) ?? false;
+  const stageLabel = speaking
+    ? isPerformer
+      ? 'Everyone can hear you'
+      : 'Speaking'
+    : !performing
+      ? 'Quiet'
+      : isPerformer && micStatus !== 'live'
+        ? 'Mic off'
+        : 'On stage';
 
   return (
     <Screen width="wide" right={<IconButton label="Leave game" color="danger" onClick={onLeave} icon={<LogOut className="size-5" strokeWidth={3} />} />}>
@@ -107,8 +110,8 @@ export function GameplayPage(props: GameplayPageProps) {
               aria-hidden
               className="pointer-events-none absolute -top-10 left-2 h-56 w-40 bg-[linear-gradient(180deg,rgb(255_233_160/0.45),transparent)] [clip-path:polygon(35%_0,65%_0,100%_100%,0_100%)]"
             />
-            <span className={cn('relative shrink-0 rounded-full', live && 'animate-pulse-ring')}>
-              <Character id={round.performerId} size={92} className={cn(live && 'animate-bob')} />
+            <span className={cn('relative shrink-0 rounded-full', speaking && 'animate-pulse-ring')}>
+              <Character id={round.performerId} size={92} className={cn(speaking && 'animate-bob')} />
             </span>
             <div className="relative min-w-0 flex-1">
               <p className="font-display text-sm tracking-[0.15em] text-fg/85 uppercase">
@@ -117,52 +120,14 @@ export function GameplayPage(props: GameplayPageProps) {
               <p className="truncate font-title text-3xl leading-tight text-outline-thin sm:text-4xl">
                 {isPerformer ? (performing ? 'Perform now!' : 'Time’s up!') : performer}
               </p>
-              <div className="mt-1 flex items-center gap-2">
-                <MicMeter active={live && (!voiceEnabled || (voiceStatus === 'connected' && !audioBlocked))} />
-                <span className="font-display text-sm tracking-wide text-fg/80 uppercase">
-                  {!live ? 'Quiet' : !voiceEnabled ? 'On stage' : isPerformer ? 'Everyone can hear you' : 'Live'}
-                </span>
+              <div className="mt-1 flex items-center gap-2" aria-live="polite">
+                <MicMeter active={speaking} />
+                <span className="font-display text-sm tracking-wide text-fg/80 uppercase">{stageLabel}</span>
               </div>
             </div>
           </section>
 
-          {voiceEnabled && !isPerformer && audioBlocked ? (
-            <Banner
-              kind="warning"
-              action={
-                <GameButton size="sm" color="gold" onClick={onEnableAudio} icon={<Volume2 className="size-5" strokeWidth={3} aria-hidden />}>
-                  Tap to hear
-                </GameButton>
-              }
-            >
-              Your browser paused the sound. Tap to hear the performer.
-            </Banner>
-          ) : null}
-
           {isPerformer ? <PerformerPanel {...props} /> : <GuessPanel key={round.number} {...props} />}
-
-          {voiceEnabled ? (
-          <div className="flex flex-col gap-3">
-            <VoiceStatusBar micStatus={isPerformer ? micStatus : 'off'} voiceStatus={voiceStatus} />
-            {voiceStatus === 'failed' ? (
-              <Banner
-                kind="warning"
-                action={
-                  <GameButton size="sm" color="night" onClick={onRetryVoice} icon={<RefreshCw className="size-4" strokeWidth={3} aria-hidden />}>
-                    Retry
-                  </GameButton>
-                }
-              >
-                Voice couldn't connect. You can keep guessing while you retry.
-              </Banner>
-            ) : null}
-          </div>
-          ) : (
-            <p className="flex items-center gap-2 rounded-2xl border-[3px] border-dashed border-fg/25 p-3 text-sm font-bold text-fg-muted">
-              <Headphones className="size-5 shrink-0" strokeWidth={2.5} aria-hidden />
-              In-game voice chat arrives in the next update. For now, perform out loud in the same room or over a call.
-            </p>
-          )}
         </div>
 
         <Panel
@@ -175,14 +140,23 @@ export function GameplayPage(props: GameplayPageProps) {
           }
           className="lg:sticky lg:top-5"
         >
-          <PlayerGrid players={room.players} selfId={selfId} performerId={round.performerId} correctIds={round.correctPlayerIds} showScores dense />
+          <PlayerGrid
+            players={room.players}
+            selfId={selfId}
+            performerId={round.performerId}
+            correctIds={round.correctPlayerIds}
+            speakingIds={speakingIds}
+            micOnIds={micOnIds}
+            showScores
+            dense
+          />
         </Panel>
       </div>
     </Screen>
   );
 }
 
-function PerformerPanel({ room, prompt, micStatus, micMuted, onToggleMute, onRetryMic, voiceEnabled = true }: GameplayPageProps) {
+function PerformerPanel({ room, prompt, micStatus = 'off', onToggleMic }: GameplayPageProps) {
   const round = room.round!;
   const performing = room.phase === 'performing';
   return (
@@ -225,35 +199,23 @@ function PerformerPanel({ room, prompt, micStatus, micMuted, onToggleMute, onRet
         </p>
       </section>
 
-      {performing && voiceEnabled ? (
-        <div className="flex flex-col gap-3">
-          {micStatus === 'live' ? (
-            <GameButton
-              color={micMuted ? 'danger' : 'night'}
-              fullWidth
-              onClick={onToggleMute}
-              aria-pressed={micMuted}
-              icon={micMuted ? <MicOff className="size-7" strokeWidth={3} aria-hidden /> : <Mic className="size-7" strokeWidth={3} aria-hidden />}
-            >
-              {micMuted ? 'Muted — tap to unmute' : 'Mute mic'}
-            </GameButton>
-          ) : null}
-          {micStatus === 'requesting' ? <Banner kind="info">Your browser is asking for the microphone. Tap “Allow”.</Banner> : null}
-          {micStatus === 'denied' || micStatus === 'unavailable' ? (
-            <Banner
-              kind="error"
-              action={
-                <GameButton size="sm" color="gold" onClick={onRetryMic} icon={<RefreshCw className="size-4" strokeWidth={3} aria-hidden />}>
-                  Retry
-                </GameButton>
-              }
-            >
-              {micStatus === 'denied'
-                ? 'Mic blocked, so nobody can hear you. Allow it from the lock icon in the address bar, then retry.'
-                : 'No microphone found. Plug one in, or open the game over HTTPS.'}
-            </Banner>
-          ) : null}
-        </div>
+      {performing && micStatus !== 'live' && onToggleMic ? (
+        <Banner
+          kind={micStatus === 'denied' || micStatus === 'unavailable' ? 'error' : 'warning'}
+          action={
+            micStatus === 'requesting' ? undefined : (
+              <GameButton size="sm" color="lime" onClick={onToggleMic} icon={<Mic className="size-5" strokeWidth={3} aria-hidden />}>
+                Turn on mic
+              </GameButton>
+            )
+          }
+        >
+          {micStatus === 'requesting'
+            ? 'Your browser is asking for the microphone. Tap “Allow”.'
+            : micStatus === 'denied' || micStatus === 'unavailable'
+              ? "Your mic isn't working, so nobody can hear you. See the voice panel below."
+              : 'Your mic is off — turn it on so everyone can hear your impression!'}
+        </Banner>
       ) : !performing ? (
         <Banner kind="info">Time's up! Everyone is locking in final guesses.</Banner>
       ) : null}

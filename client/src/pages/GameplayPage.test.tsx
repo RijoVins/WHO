@@ -12,14 +12,8 @@ function props(over: Partial<GameplayPageProps> & Pick<GameplayPageProps, 'room'
     prompt: null,
     myGuess: { attempts: 0, remaining: 5, correct: false, lastGuess: null },
     micStatus: 'off',
-    micMuted: false,
-    voiceStatus: 'connected',
-    audioBlocked: false,
     onSubmitGuess: vi.fn(),
-    onToggleMute: vi.fn(),
-    onRetryMic: vi.fn(),
-    onRetryVoice: vi.fn(),
-    onEnableAudio: vi.fn(),
+    onToggleMic: vi.fn(),
     onLeave: vi.fn(),
     ...over,
   };
@@ -32,7 +26,8 @@ describe('GameplayPage', () => {
     expect(screen.getByText('Thalapathy Vijay')).toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'Photo of Thalapathy Vijay' })).toHaveAttribute('src', '/images/celebrities/vijay.jpg');
     expect(screen.queryByLabelText('Your guess')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /mute mic/i })).toBeInTheDocument();
+    // Mic is live: no "turn on your mic" nag.
+    expect(screen.queryByRole('button', { name: /turn on mic/i })).not.toBeInTheDocument();
   });
 
   it('shows guessers the guess form and no prompt or photo', async () => {
@@ -77,5 +72,24 @@ describe('GameplayPage', () => {
     renderWithRouter(<GameplayPage {...props({ room, myGuess: { attempts: 1, remaining: 5, correct: true, lastGuess: 'x' } })} />);
     expect(screen.getByText('YOU GOT IT!')).toBeInTheDocument();
     expect(screen.queryByLabelText('Your guess')).not.toBeInTheDocument();
+  });
+});
+
+describe('GameplayPage voice cues', () => {
+  it('asks the performer to turn on their mic, and wires the button', async () => {
+    const room = makeRoom({ players: 4, selfIsHost: true, selfIsPerformer: true, mode: 'friends', phase: 'performing' });
+    const onToggleMic = vi.fn();
+    renderWithRouter(<GameplayPage {...props({ room, prompt: makePrompt('friends', room), myGuess: null, micStatus: 'off', onToggleMic })} />);
+    await userEvent.click(screen.getByRole('button', { name: /turn on mic/i }));
+    expect(onToggleMic).toHaveBeenCalled();
+  });
+
+  it('shows who is speaking on the player list and the stage', () => {
+    const room = makeRoom({ players: 4, selfIsHost: false, selfIsPerformer: false, mode: 'celebrity', phase: 'performing' });
+    const performerId = room.round!.performerId;
+    renderWithRouter(<GameplayPage {...props({ room, speakingIds: new Set([performerId]), micOnIds: new Set([performerId]) })} />);
+    expect(screen.getByLabelText(/is speaking/i)).toBeInTheDocument();
+    expect(screen.getByText('Speaking')).toBeInTheDocument();
+    expect(screen.getAllByLabelText('Mic on').length).toBeGreaterThan(0);
   });
 });

@@ -6,6 +6,8 @@ import { defineConfig } from 'vite';
 // Where the game server runs in development. Vite forwards Socket.IO and /api to it,
 // so the browser (and phones on your Wi-Fi) only ever talk to one address.
 const GAME_SERVER = process.env.GAME_SERVER_URL ?? 'http://localhost:3001';
+// Local LiveKit (npm run dev starts it). Browsers reach it at /livekit on this same address.
+const LIVEKIT_SERVER = process.env.LIVEKIT_DEV_URL ?? 'http://localhost:7880';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -16,6 +18,7 @@ export default defineConfig({
     proxy: {
       '/socket.io': { target: GAME_SERVER, ws: true, changeOrigin: true },
       '/api': { target: GAME_SERVER, changeOrigin: true },
+      '/livekit': { target: LIVEKIT_SERVER, ws: true, changeOrigin: true, rewrite: (p) => p.replace(/^\/livekit/, '') },
     },
   },
   test: {

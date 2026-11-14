@@ -20,6 +20,7 @@ const testConfig = {
   // Every test client shares one IP; the per-IP limit has its own test below.
   roomCreateBurst: 1000,
   production: false,
+  voice: null,
 };
 
 beforeAll(async () => {

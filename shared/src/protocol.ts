@@ -24,7 +24,8 @@ export type ErrorCode =
   | 'NOT_A_GUESSER'
   | 'ALREADY_CORRECT'
   | 'DUPLICATE_GUESS'
-  | 'NO_GUESSES_LEFT';
+  | 'NO_GUESSES_LEFT'
+  | 'VOICE_UNAVAILABLE';
 
 export type Ack<T = object> = ({ ok: true } & T) | { ok: false; code: ErrorCode; error: string };
 
@@ -40,6 +41,18 @@ export interface SessionGrant {
   prompt: PrivatePrompt | null;
   /** This player's guesses in the current round, if any. */
   myGuess: MyGuessState | null;
+}
+
+/** Everything a browser needs to join its room's voice chat. Never contains the API secret. */
+export interface VoiceAccess {
+  /** LiveKit WebSocket URL (wss:// in production), or a same-origin path such as /livekit. */
+  url: string;
+  /** Short-lived access token for this player in this room's voice room only. */
+  token: string;
+  /** The voice room name (derived from the game room). */
+  roomName: string;
+  /** This player's voice identity: their player id. */
+  identity: string;
 }
 
 export interface GuessResult {
@@ -76,6 +89,8 @@ export interface ClientToServerEvents {
   play_again: (ack: (r: Ack) => void) => void;
   /** Host, after the final results: back to the lobby. */
   return_to_lobby: (ack: (r: Ack) => void) => void;
+  /** Ask for a voice token for the room this connection is seated in. */
+  voice_token: (ack: (r: Ack<VoiceAccess>) => void) => void;
 }
 
 export interface ServerToClientEvents {

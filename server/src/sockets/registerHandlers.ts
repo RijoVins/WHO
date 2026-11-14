@@ -2,6 +2,7 @@ import type { Server, Socket } from 'socket.io';
 import type { Ack, ClientToServerEvents, ErrorCode, ServerToClientEvents, SessionGrant } from '@ib/shared';
 import type { Player, Room, RoomStore } from '../rooms/RoomStore.ts';
 import { KeyedLimiter, TokenBucket } from '../middleware/rateLimit.ts';
+import type { VoiceService } from '../livekit/voice.ts';
 import { parseCreate, parseJoin, parseMode, parseResume, parseRounds } from './validate.ts';
 
 /** Per-socket data. Set only by the server, never trusted from the client. */
@@ -18,7 +19,12 @@ type GameSocket = Socket<ClientToServerEvents, ServerToClientEvents, Record<stri
 const err = (code: ErrorCode, error: string) => ({ ok: false as const, code, error });
 
 /** Wire Socket.IO events to the room store. */
-export function registerHandlers(io: GameServer, store: RoomStore, opts: { trustProxy: boolean; roomCreateBurst: number }) {
+export function registerHandlers(
+  io: GameServer,
+  store: RoomStore,
+  opts: { trustProxy: boolean; roomCreateBurst: number; voice?: VoiceService | null },
+) {
+  const voice = opts.voice ?? null;
   // Room creation is the expensive action: a small burst per IP, refilling one every 6s.
   const createLimiter = new KeyedLimiter(opts.roomCreateBurst, 1 / 6);
 
@@ -35,7 +41,12 @@ export function registerHandlers(io: GameServer, store: RoomStore, opts: { trust
   store.on('removed', (code, player) => {
     // If the removed player somehow still has a socket, tell it.
     if (player.socketId) io.to(player.socketId).emit('session_ended', { reason: 'removed' });
+    const room = store.get(code);
+    if (room && voice) void voice.kick(code, room.createdAt, player.id);
     broadcast(code);
+  });
+  store.on('closed', (code, createdAt) => {
+    if (voice) void voice.closeRoom(code, createdAt);
   });
 
   io.on('connection', (socket: GameSocket) => {
@@ -93,10 +104,13 @@ export function registerHandlers(io: GameServer, store: RoomStore, opts: { trust
     const leaveCurrent = () => {
       const { code, playerId } = socket.data;
       if (!code || !playerId) return;
+      const createdAt = store.get(code)?.createdAt;
       socket.leave(code);
       socket.data.code = null;
       socket.data.playerId = null;
       store.removePlayer(code, playerId);
+      // Out of the game means out of its voice chat too.
+      if (voice && createdAt !== undefined) void voice.kick(code, createdAt, playerId);
     };
 
     on('create_room', (payload) => {
@@ -172,6 +186,17 @@ export function registerHandlers(io: GameServer, store: RoomStore, opts: { trust
     simple('next_round', (c, p) => store.nextRound(c, p));
     simple('play_again', (c, p) => store.playAgain(c, p));
     simple('return_to_lobby', (c, p) => store.returnToLobby(c, p));
+
+    on('voice_token', async () => {
+      const me = mine();
+      if (!me) return err('NOT_IN_ROOM', "You're not in a room.");
+      const room = store.get(me.code);
+      const player = room?.players.get(me.playerId);
+      if (!room || !player) return err('NOT_IN_ROOM', "You're not in this room anymore.");
+      if (!voice) return err('VOICE_UNAVAILABLE', "Voice chat isn't set up on this server.");
+      // Token is scoped to this room's voice room and this player's identity only.
+      return { ok: true, ...(await voice.tokenFor({ code: room.code, createdAt: room.createdAt, playerId: player.id, name: player.name })) };
+    });
 
     on('submit_guess', (payload) => {
       const me = mine();

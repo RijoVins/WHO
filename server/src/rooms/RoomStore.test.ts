@@ -107,6 +107,6 @@ describe('RoomStore', () => {
     s.on('closed', closed);
     s.removePlayer(c.value.room.code, c.value.player.id);
     expect(s.get(c.value.room.code)).toBeUndefined();
-    expect(closed).toHaveBeenCalledWith(c.value.room.code);
+    expect(closed).toHaveBeenCalledWith(c.value.room.code, c.value.room.createdAt);
   });
 });
