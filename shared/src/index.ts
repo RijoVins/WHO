@@ -3,3 +3,4 @@ export * from './types.ts';
 export * from './validation.ts';
 export * from './ranking.ts';
 export * from './events.ts';
+export * from './protocol.ts';

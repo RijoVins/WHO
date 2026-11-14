@@ -23,13 +23,17 @@ interface LobbyPageProps {
   justCreated?: boolean;
   starting?: boolean;
   error?: string | null;
+  /** Friendly, non-error message (e.g. what happens next). */
+  notice?: string | null;
+  /** Connection to the game server dropped; it is retrying. */
+  reconnecting?: boolean;
   onChangeMode: (mode: GameMode) => void;
   onChangeRounds: (rounds: number) => void;
   onStart: () => void;
   onLeave: () => void;
 }
 
-export function LobbyPage({ room, selfId, justCreated, starting, error, onChangeMode, onChangeRounds, onStart, onLeave }: LobbyPageProps) {
+export function LobbyPage({ room, selfId, justCreated, starting, error, notice, reconnecting, onChangeMode, onChangeRounds, onStart, onLeave }: LobbyPageProps) {
   const isHost = room.hostId === selfId;
   const connected = room.players.filter((p) => p.connected).length;
   const blocker = startBlocker(room);
@@ -41,7 +45,9 @@ export function LobbyPage({ room, selfId, justCreated, starting, error, onChange
       right={<IconButton label="Leave room" color="danger" onClick={onLeave} icon={<LogOut className="size-5" strokeWidth={3} />} />}
     >
       {justCreated && isHost ? <Banner kind="success">Room created! Share the code so your friends can jump in.</Banner> : null}
+      {reconnecting ? <Banner kind="warning">Connection lost — reconnecting you to the room…</Banner> : null}
       {error ? <Banner kind="error">{error}</Banner> : null}
+      {notice ? <Banner kind="info">{notice}</Banner> : null}
 
       {/* Phone order: code → game setup / start → players. Desktop: two columns. */}
       <div className="grid items-start gap-6 lg:grid-cols-[3fr_2fr]">

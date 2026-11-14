@@ -1,29 +1,60 @@
 import { lazy, Suspense } from 'react';
-import { createBrowserRouter, Outlet, RouterProvider } from 'react-router';
+import { createBrowserRouter, Outlet, RouterProvider, useNavigate } from 'react-router';
 import type { RouteObject } from 'react-router';
 import { ArcadeBackground } from './components/ArcadeBackground';
 import { ModeProvider } from './context/ModeProvider';
+import { GameProvider } from './context/GameProvider';
+import { useGame } from './context/game';
 import { HomePage } from './pages/HomePage';
 import { CreateRoomPage } from './pages/CreateRoomPage';
 import { JoinRoomPage } from './pages/JoinRoomPage';
+import { RoomPage } from './pages/RoomPage';
 import { NotFoundPage } from './pages/NotFoundPage';
-import { createRoom, joinRoom } from './services/rooms';
 
 function Layout() {
   return (
-    <ModeProvider>
-      <ArcadeBackground />
-      <Outlet />
-    </ModeProvider>
+    <GameProvider>
+      <ModeProvider>
+        <ArcadeBackground />
+        <Outlet />
+      </ModeProvider>
+    </GameProvider>
+  );
+}
+
+function CreateRoute() {
+  const game = useGame();
+  const navigate = useNavigate();
+  return (
+    <CreateRoomPage
+      createRoom={async (name, mode) => {
+        const r = await game.createRoom(name, mode);
+        if (r.ok && r.code) navigate(`/room/${r.code}`, { state: { justCreated: true } });
+        return r;
+      }}
+    />
+  );
+}
+
+function JoinRoute() {
+  const game = useGame();
+  const navigate = useNavigate();
+  return (
+    <JoinRoomPage
+      joinRoom={async (name, code) => {
+        const r = await game.joinRoom(name, code);
+        if (r.ok && r.code) navigate(`/room/${r.code}`);
+        return r;
+      }}
+    />
   );
 }
 
 const children: RouteObject[] = [
   { index: true, element: <HomePage /> },
-  { path: 'create', element: <CreateRoomPage createRoom={createRoom} /> },
-  { path: 'join', element: <JoinRoomPage joinRoom={joinRoom} /> },
-  // In-room screens (/room/:code) arrive with the game server: which one shows
-  // is decided by the server's room phase, not by the URL.
+  { path: 'create', element: <CreateRoute /> },
+  { path: 'join', element: <JoinRoute /> },
+  { path: 'room/:code', element: <RoomPage /> },
   { path: '*', element: <NotFoundPage /> },
 ];
 

@@ -18,14 +18,14 @@ describe('validatePlayerName', () => {
 
 describe('validateRoomCode', () => {
   it('normalizes case, spaces and dashes', () => {
-    expect(normalizeRoomCode(' k7q-x4 ')).toBe('K7QX4');
-    expect(validateRoomCode('k7qx4')).toEqual({ ok: true, value: 'K7QX4' });
+    expect(normalizeRoomCode(' k7q-x4m ')).toBe('K7QX4M');
+    expect(validateRoomCode('k7qx4m')).toEqual({ ok: true, value: 'K7QX4M' });
   });
   it('rejects wrong length', () => {
-    expect(validateRoomCode('ABC')).toEqual({ ok: false, error: 'Room codes are 5 characters long.' });
+    expect(validateRoomCode('ABC')).toEqual({ ok: false, error: 'Room codes are 6 characters long.' });
   });
   it('rejects look-alike characters', () => {
-    const r = validateRoomCode('ABCD0');
+    const r = validateRoomCode('ABCDE0');
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error).toContain('"0"');
   });

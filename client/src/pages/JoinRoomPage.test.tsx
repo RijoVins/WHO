@@ -18,23 +18,23 @@ describe('JoinRoomPage', () => {
   it('rejects codes with look-alike characters', async () => {
     renderWithRouter(<JoinRoomPage joinRoom={vi.fn()} />, '/join');
     await userEvent.type(screen.getByLabelText('Your name'), 'Ana');
-    await userEvent.type(screen.getByLabelText('Room code'), 'abcd0');
+    await userEvent.type(screen.getByLabelText('Room code'), 'abcde0');
     await userEvent.click(screen.getByRole('button', { name: /join room/i }));
     expect(await screen.findByText(/never contain "0"/)).toBeInTheDocument();
   });
 
   it('prefills the code from an invite link and sends normalized values', async () => {
     const joinRoom = vi.fn().mockResolvedValue({ ok: true });
-    renderWithRouter(<JoinRoomPage joinRoom={joinRoom} />, '/join?code=k7qx4');
-    expect(screen.getByLabelText('Room code')).toHaveValue('K7QX4');
+    renderWithRouter(<JoinRoomPage joinRoom={joinRoom} />, '/join?code=k7qx4m');
+    expect(screen.getByLabelText('Room code')).toHaveValue('K7QX4M');
     await userEvent.type(screen.getByLabelText('Your name'), '  Ana  ');
     await userEvent.click(screen.getByRole('button', { name: /join room/i }));
-    expect(joinRoom).toHaveBeenCalledWith('Ana', 'K7QX4');
+    expect(joinRoom).toHaveBeenCalledWith('Ana', 'K7QX4M');
   });
 
   it('shows the server error', async () => {
     const joinRoom = vi.fn().mockResolvedValue({ ok: false, error: 'This room is full (60 players).' });
-    renderWithRouter(<JoinRoomPage joinRoom={joinRoom} />, '/join?code=K7QX4');
+    renderWithRouter(<JoinRoomPage joinRoom={joinRoom} />, '/join?code=K7QX4M');
     await userEvent.type(screen.getByLabelText('Your name'), 'Ana');
     await userEvent.click(screen.getByRole('button', { name: /join room/i }));
     expect(await screen.findByRole('alert')).toHaveTextContent('This room is full (60 players).');

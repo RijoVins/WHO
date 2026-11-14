@@ -18,7 +18,7 @@ interface JoinRoomPageProps {
 
 export function JoinRoomPage({ joinRoom }: JoinRoomPageProps) {
   const [params] = useSearchParams();
-  // Invite links look like /join?code=K7QX4
+  // Invite links look like /join?code=K7QX4M
   const invited = normalizeRoomCode(params.get('code') ?? '').slice(0, ROOM_CODE_LENGTH);
   const [name, setName] = useState(loadLastName);
   const [code, setCode] = useState(invited);

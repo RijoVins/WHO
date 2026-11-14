@@ -9,7 +9,7 @@ export const NAME_MAX_LENGTH = 20;
  * Room codes avoid look-alike characters (no 0/O, 1/I/L) so they are easy
  * to read aloud and type on a phone keyboard.
  */
-export const ROOM_CODE_LENGTH = 5;
+export const ROOM_CODE_LENGTH = 6;
 export const ROOM_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
 /** Round timing (seconds). The server owns these timers; clients only display them. */
@@ -26,3 +26,6 @@ export const MAX_GUESSES_PER_ROUND = 5;
 /** Game length options the host can choose from. */
 export const ROUND_COUNT_OPTIONS = [3, 5, 10, 15] as const;
 export const DEFAULT_ROUND_COUNT = 5;
+
+/** How long a disconnected player keeps their seat before being removed. */
+export const RECONNECT_GRACE_SECONDS = 60;

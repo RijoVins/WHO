@@ -23,7 +23,7 @@ export function validatePlayerName(input: unknown): ValidationResult<string> {
   return { ok: true, value: name };
 }
 
-/** Uppercase and drop spaces/dashes, so " k7q-x4 " becomes "K7QX4". */
+/** Uppercase and drop spaces/dashes, so " k7q-x4m " becomes "K7QX4M". */
 export function normalizeRoomCode(input: string): string {
   return input.toUpperCase().replace(/[\s-]/g, '');
 }

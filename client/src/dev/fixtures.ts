@@ -46,7 +46,7 @@ export function makeRoom(opts: {
   const performEndsAt = opts.phase === 'guessing' ? now : now + PERFORM_SECONDS * 1000;
   const totalRounds = opts.totalRounds ?? DEFAULT_ROUND_COUNT;
   return {
-    code: 'K7QX4',
+    code: 'K7QX4M',
     hostId: opts.selfIsHost ? SELF_ID : 'p1',
     phase: opts.phase,
     settings: { mode: opts.mode, totalRounds },
